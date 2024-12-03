@@ -10,10 +10,8 @@ public class AuthentificationBasicRepository
 	{
 		this.context = context;
 	}
-	public  Utilisateur IsValidCredentials(string username)
+	public  UtilisateurDto RetrieveCredentials(string email)
 	{
-		return context.Utilisateurs.Where(u => u.Nom == username).FirstOrDefault()!;
+		return context.GetUsersData().Where(u => u.Email == email).FirstOrDefault()!;
 	}
-
-
 }

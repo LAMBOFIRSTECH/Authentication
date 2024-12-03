@@ -4,22 +4,20 @@
         <name>Authentifications</name>
     </assembly>
     <members>
-        <member name="M:Authentifications.Controllers.AccessTokenController.Authentification(System.String,System.String)">
-            <param name="email"></param>
-            <param name="secretUser"></param>
+        <member name="M:Authentifications.Controllers.AccessTokenController.Authentificate(System.String,System.String)">
+            <param name="email"></param>// je veux le mot de passe utilisateur ici
+            <param name="password"></param> 
             <returns></returns>
+        </member>
+        <member name="M:Authentifications.DataBaseContext.ApiContext.GetUsersData">
+            
         </member>
         <member name="T:Authentifications.Models.TokenResult">
             <summary>
             Gestion du token JWT.
             </summary>
         </member>
-        <member name="T:Authentifications.Models.Utilisateur">
-            <summary>
-            Représente un utilisateur dans le système.
-            </summary>
-        </member>
-        <member name="P:Authentifications.Models.Utilisateur.ID">
+        <member name="P:Authentifications.Models.UtilisateurDto.ID">
             <summary>
             Représente l'identifiant unique d'un utilisateur.
             </summary>

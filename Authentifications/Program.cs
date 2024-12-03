@@ -86,6 +86,8 @@ builder.Services.AddScoped<IJwtToken, JwtBearerAuthentificationService>();
 	+----------------------------------------------------+
 */
 builder.Services.AddScoped<JwtBearerAuthentificationRepository>();
+builder.Services.AddScoped<AuthentificationBasicRepository>();
+builder.Services.AddScoped<JwtBearerAuthentificationService>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -121,16 +123,13 @@ builder.Services.AddAuthorization(options =>
  {
 	 // Politique d'autorisation pour les administrateurs
 	 options.AddPolicy("AdminPolicy", policy =>
-		 policy.RequireRole(nameof(Utilisateur.Privilege.Administrateur))
-			   .RequireAuthenticatedUser()
+		 policy.RequireRole(nameof(UtilisateurDto.Privilege.Administrateur))
+			   .RequireAuthenticatedUser()  // L'utilisateur doit être authentifié
 			   .AddAuthenticationSchemes("JwtAuthorization"));
 
-
-	 // Politique d'autorisation pour les utilisateurs non-administrateurs
-	//  options.AddPolicy("UserPolicy", policy =>
-	// 	policy.RequireRole(nameof(Utilisateur.Privilege.Utilisateur))
-	// 		   .RequireAuthenticatedUser()  // L'utilisateur doit être authentifié
-	// 		   .AddAuthenticationSchemes("BasicAuthentication"));
+	 options.AddPolicy("UserPolicy", policy =>
+			   policy.RequireAuthenticatedUser() 
+			   .AddAuthenticationSchemes("BasicAuthentication"));
 
  });
 var app = builder.Build();

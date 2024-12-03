@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Authentifications.Interfaces;
+using Authentifications.Middlewares;
 using Authentifications.Models;
 using Authentifications.Repositories;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,7 @@ public class JwtBearerAuthentificationService : IJwtToken
 	private readonly JwtBearerAuthentificationRepository jwtBearerAuthentificationRepository;
 	private readonly IConfiguration configuration;
 	public JwtBearerAuthentificationService(IConfiguration configuration, JwtBearerAuthentificationRepository jwtBearerAuthentificationRepository)
+
 	{
 		this.jwtBearerAuthentificationRepository = jwtBearerAuthentificationRepository;
 		this.configuration = configuration;
@@ -29,23 +31,21 @@ public class JwtBearerAuthentificationService : IJwtToken
 		if (!BCryptResult.Equals(true)) { return false; }
 		return true;
 	}
-	public async Task<TokenResult> GetToken(string email)
+	public async Task<TokenResult> GetToken(string email, string password)
 	{
-		var utilisateur = jwtBearerAuthentificationRepository.GetToken(email);
-		if (utilisateur is null)
+		var utilisateur = jwtBearerAuthentificationRepository.GetUserFilterByEmailAddress(email);
+		if (utilisateur.Role == UtilisateurDto.Privilege.Utilisateur)
 		{
-			return new TokenResult
-			{
-				Response = false,
-				Message = "Droits insuffisants ou adresse mail inexistante !"
-			};
+			throw new AuthentificationBasicException($"{utilisateur.Nom} doesn't have the right privilege for JWT Token.");
 		}
+
 		await Task.Delay(500);
 		return new TokenResult
 		{
 			Response = true,
 			Token = GenerateJwtToken(utilisateur.Email)
 		};
+
 	}
 	public string GetSigningKey()
 	{
@@ -57,7 +57,8 @@ public class JwtBearerAuthentificationService : IJwtToken
 	}
 	public string GenerateJwtToken(string email)
 	{
-		var utilisateur = jwtBearerAuthentificationRepository.GenerateJwtToken(email);
+
+		var utilisateur = jwtBearerAuthentificationRepository.GetUserWithAdminPrivilege(email);
 		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var tokenDescriptor = new SecurityTokenDescriptor
@@ -76,5 +77,6 @@ public class JwtBearerAuthentificationService : IJwtToken
 		var tokenCreation = tokenHandler.CreateToken(tokenDescriptor);
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
+
 	}
 }

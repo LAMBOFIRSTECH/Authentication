@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace Authentifications;
 
 
-public class JwtBearerAuthorizationServer : AuthenticationHandler<JwtBearerOptions>
+public class JwtBearerAuthorizationServer : AuthenticationHandler<JwtBearerOptions>  // doit etre configurer dans tasksmanagement
 {
 	public JwtBearerAuthorizationServer(IOptionsMonitor<JwtBearerOptions> options,
 	ILoggerFactory logger,

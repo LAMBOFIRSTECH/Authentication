@@ -4,21 +4,19 @@ using Authentifications.Models;
 namespace Authentifications.Repositories;
 public class JwtBearerAuthentificationRepository
 {
-	private readonly ApiContext  context;
+	private readonly ApiContext context;
 
 	public JwtBearerAuthentificationRepository(ApiContext context)
 	{
 		this.context = context;
 	}
-	public Utilisateur GenerateJwtToken(string email) // A revoir lors de la suppression du model Utilisateur
+	// Pour les ddeux fonctions ci-dessous remplacer par une seule fonction qui accepte deux filtres differents (Fonction déléguée)
+	public UtilisateurDto GetUserWithAdminPrivilege(string email) // A revoir lors de la suppression du model Utilisateur
 	{
-		return context.Utilisateurs
-		.Single(u => u.Email.ToUpper().Equals(email.ToUpper()) && u.Role.Equals(Utilisateur.Privilege.Administrateur));
-
+		return context.GetUsersData().Where(u => u.Email.ToUpper().Equals(email.ToUpper()) && u.Role.Equals(UtilisateurDto.Privilege.Administrateur)).FirstOrDefault()!;
 	}
-	public Utilisateur GetToken(string email) // A revoir lors de la suppression du model Utilisateur
+	public UtilisateurDto GetUserFilterByEmailAddress(string email)
 	{
-		return context.Utilisateurs.Where(u => u.Email.ToUpper().Equals(email.ToUpper()) && u.Role.Equals(Utilisateur.Privilege.Administrateur)).FirstOrDefault()!;
-
+		return context.GetUsersData().Where(u => u.Email.ToUpper().Equals(email.ToUpper())).FirstOrDefault()!;
 	}
 }

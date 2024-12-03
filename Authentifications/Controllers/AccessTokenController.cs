@@ -4,27 +4,35 @@ using Microsoft.AspNetCore.Mvc;
 using Authentifications.Interfaces;
 using Authentifications.DataBaseContext;
 using Microsoft.AspNetCore.Authorization;
+using Authentifications.Models;
+using Authentifications.Repositories;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using System.Text;
+using Authentifications.Services;
 
 namespace Authentifications.Controllers;
-// [ApiController] il gère lui meme 
+// [ApiController] il gère lui meme les messages d'erreurs
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
-	private readonly IJwtToken jwtToken;
-	private readonly ApiContext context ;
-	
-	public AccessTokenController(IJwtToken jwtToken,ApiContext context )
+	private readonly JwtBearerAuthentificationService jwtToken;
+	private readonly ApiContext context; // Que pour les tests ne pas faire ceci dans un controller
+	private readonly AuthentificationBasicService basic;
+
+	public AccessTokenController(JwtBearerAuthentificationService jwtToken, ApiContext context, AuthentificationBasicService basic)
 	{
-		this.jwtToken = jwtToken; 
-		this.context = context; 
-		
+		this.jwtToken = jwtToken;
+		this.context = context;
+		this.basic = basic;
+
 	}
-	/// <param name="email"></param>
-	/// <param name="secretUser"></param> // je veux le mot de passe utilisateur ici
+	/// <param name="email"></param>// je veux le mot de passe utilisateur ici
+	/// <param name="password"></param> 
 	/// <returns></returns>
-	[HttpPost("token")]
-	public async Task<ActionResult> Authentification(string email, [DataType(DataType.Password)] string secretUser)
+	[HttpPost("login")]
+	public async Task<ActionResult> Authentificate([EmailAddress] string email, [DataType(DataType.Password)] string password)
 	{
+
 		if (!ModelState.IsValid)
 		{
 			// Ajouter les erreurs de validation dans HttpContext.Items
@@ -35,30 +43,28 @@ public class AccessTokenController : ControllerBase
 			HttpContext.Items["ModelValidationErrors"] = validationErrors;
 			return StatusCode(422);
 		}
-		string regexMatch = "(?<alpha>\\w+)@(?<mailing>[aA-zZ]+)\\.(?<domaine>[aA-zZ]+$)";
-		Match check = Regex.Match(email, regexMatch);
-
-		if (!check.Success)
+		var isAuthenticated = await basic.AuthenticateAsync(email, password);
+		if (!isAuthenticated)
 		{
-			return BadRequest(new { Errors = "Cette adresse mail est invalide" });
-		};
-
-		if (jwtToken.CheckUserSecret(secretUser) == false)
-		{
-			return Unauthorized("Votre clé secrète incorrect");
+			return Unauthorized(new { Errors = "Invalid email or password" });
 		}
-		var result = await jwtToken.GetToken(email);
+
+		var result = await jwtToken.GetToken(email, password);
 		if (!result.Response)
 		{
-			return Unauthorized(new { result.Message });
+			return Unauthorized(new { result.Message }); // Libérer le controller dans le middleware
 		}
-		return Ok(new { result.Token });
+		var credentials = $"{email}:{password}";
+		var encodedCredentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+		Response.Headers.Add("Authorization", $"Basic {encodedCredentials}");
+		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
-	[Authorize]
+
+	[Authorize(Policy = "AdminPolicy")]
 	[HttpGet("users")]
 	public async Task<ActionResult> Users()
 	{
 		await Task.Delay(10);
-		return Ok(context.Utilisateurs.ToList());
+		return Ok(context.GetUsersData().ToList());
 	}
 }

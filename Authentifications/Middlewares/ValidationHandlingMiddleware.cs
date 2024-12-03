@@ -1,3 +1,6 @@
+using System.Security.Authentication;
+using Authentifications.Models;
+
 namespace Authentifications.Middlewares;
 public class ValidationHandlingMiddleware
 {
@@ -11,7 +14,7 @@ public class ValidationHandlingMiddleware
 	{
 		try
 		{
-			await _next(context); 
+			await _next(context);
 		}
 		catch (Exception ex)
 		{
@@ -26,8 +29,8 @@ public class ValidationHandlingMiddleware
 			context.Response.ContentType = "application/json";
 			var response = new
 			{
-				Type = "DataModelValidationError",
-				Title = "Champs potentiellement vide.",
+				Type = "Error : ValidationError for DataModel",
+				Title = "You must enter requested values for all fields.",
 				Status = 400,
 				Errors = validationErrors
 			};
@@ -35,20 +38,58 @@ public class ValidationHandlingMiddleware
 			await context.Response.WriteAsJsonAsync(response);
 		}
 	}
-	private Task HandleExceptionAsync(HttpContext context, Exception exception)
+
+	private async Task HandleExceptionAsync(HttpContext context, Exception exception)
 	{
 		context.Response.ContentType = "application/json";
-		context.Response.StatusCode = 500;
-
-		var response = new
+		context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+		var response = new ErrorMessage
 		{
+			TraceId = context.TraceIdentifier,
+			Message = exception.Message,
 			Type = "ServerError",
 			Title = "An unexpected error occurred.",
-			Status = 500,
-			TraceId = context.TraceIdentifier,
-			Message = exception.Message
+			Status = StatusCodes.Status500InternalServerError
 		};
+		switch (exception)
+		{
+			case AuthentificationBasicException:
+				context.Response.StatusCode = StatusCodes.Status403Forbidden;
+				response.Type = "AuthenticationError";
+				response.Title = "Request has been authenticated successfully.";
+				response.Detail = "However, it is not eligible for JWT authentication.";
+				response.Status = StatusCodes.Status403Forbidden;
+				response.TraceId = context.TraceIdentifier;
+				response.Message = exception.Message;
+				break;
 
-		return context.Response.WriteAsJsonAsync(response);
+			case AuthenticationException:
+				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+				response.Type = "Unauthorized";
+				response.Title = "Invalid credentials.";
+				response.Status = StatusCodes.Status401Unauthorized;
+				response.TraceId = context.TraceIdentifier;
+				response.Message = exception.Message;
+				break;
+
+			case ArgumentException:
+				context.Response.StatusCode = StatusCodes.Status400BadRequest;
+				response.Type = "BadRequest";
+				response.Title = "Invalid argument provided.";
+				response.Status = StatusCodes.Status400BadRequest;
+				break;
+			case KeyNotFoundException:
+				context.Response.StatusCode = StatusCodes.Status404NotFound;
+				response.Type = "NotFound";
+				response.Title = "The requested resource was not found.";
+				response.Status = StatusCodes.Status404NotFound;
+				break;
+			default:
+				break;
+		}
+
+		await context.Response.WriteAsJsonAsync(response);
 	}
+
+
 }
