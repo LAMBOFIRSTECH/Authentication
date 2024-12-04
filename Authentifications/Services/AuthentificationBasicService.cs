@@ -8,26 +8,26 @@ using Microsoft.Extensions.Options;
 namespace Authentifications.Repositories;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-	private readonly AuthentificationBasicRepository authentificationBasic;
-	private readonly JwtBearerAuthentificationService jwtBearer; // Communication interservice pb de dépendance MediatR || Gestionnaire d'évènements
-	public AuthentificationBasicService(AuthentificationBasicRepository authentificationBasic,JwtBearerAuthentificationService jwtBearer, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository ; 
+	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
+	public AuthentificationBasicService(JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository,JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
 	ISystemClock clock)
 	: base(options, logger, encoder, clock)
 	{
-		this.authentificationBasic = authentificationBasic; 
-		this.jwtBearer = jwtBearer; 
+		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;  
+		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService; 
 	}
 
 	internal async Task<bool> AuthenticateAsync(string email, string password)
 	{
-		var utilisateur = authentificationBasic.RetrieveCredentials(email); 
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email); 
 		if (utilisateur != null)
 		{
 			return utilisateur.CheckHashPassword(password);
 		}
-		await Task.Delay(1000); // est ce pertinent ?
+		await Task.Delay(1000); 
 		return false;
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -51,9 +51,9 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 			if (await AuthenticateAsync(email, password))
 			{
-				jwtBearer.GenerateJwtToken(email);
+				jwtBearerAuthenticationService.GenerateJwtToken(email);
 			}
-			return AuthenticateResult.Fail("password incrorrect");
+			return AuthenticateResult.Fail("email or password incrorrect");
 		}
 		catch (FormatException)
 		{

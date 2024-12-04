@@ -21,7 +21,7 @@ var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddControllers();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
-	options.SuppressModelStateInvalidFilter = true; // Empêche le traitement automatique des erreurs de validation
+	options.SuppressModelStateInvalidFilter = true;
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -78,16 +78,15 @@ builder.Services.AddHealthChecks();
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
 	+----------------------------------------------------------------------+
 */
-builder.Services.AddScoped<IJwtToken, JwtBearerAuthentificationService>();
+builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
 
 /* 
 	+----------------------------------------------------+
-	| Enregistrement de repositories Injectés directement|
+	| Enregistrement de repositories/Services Injectés directement|
 	+----------------------------------------------------+
 */
-builder.Services.AddScoped<JwtBearerAuthentificationRepository>();
-builder.Services.AddScoped<AuthentificationBasicRepository>();
-builder.Services.AddScoped<JwtBearerAuthentificationService>();
+builder.Services.AddScoped<JwtBearerAuthenticationRepository>();
+builder.Services.AddScoped<JwtBearerAuthenticationService>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -95,43 +94,45 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
+	
+// C'est dans TasksManagementAPI toute cette partie
 
-builder.Services.AddAuthentication("JwtAuthorization")
-	.AddScheme<JwtBearerOptions, JwtBearerAuthorizationServer>("JwtAuthorization", options =>
-	{
-		var JwtSettings = builder.Configuration.GetSection("JwtSettings");
-		var secretKeyLength = int.Parse(JwtSettings["JwtSecretKey"]);
-		var randomSecretKey = new RandomUserSecret();
-		var signingKey = randomSecretKey.GenerateRandomKey(secretKeyLength);
+// builder.Services.AddAuthentication("JwtAuthorization")
+// 	.AddScheme<JwtBearerOptions, JwtBearerAuthorizationServer>("JwtAuthorization", options =>
+// 	{
+// 		var JwtSettings = builder.Configuration.GetSection("JwtSettings");
+// 		var secretKeyLength = int.Parse(JwtSettings["JwtSecretKey"]);
+// 		var randomSecretKey = new RandomUserSecret();
+// 		var signingKey = randomSecretKey.GenerateRandomKey(secretKeyLength);
 
-		options.SaveToken = true;
-		options.RequireHttpsMetadata = false;
-		options.TokenValidationParameters = new TokenValidationParameters
-		{
-			ValidateIssuer = true,             // Valider l'émetteur (issuer) du jeton
-			ValidateAudience = true,           // Valider l'audience du jeton
-			ValidateLifetime = true,           // Valider la durée de vie du jeton
-			ValidateIssuerSigningKey = true,   // Valider la signature du jeton
+// 		options.SaveToken = true;
+// 		options.RequireHttpsMetadata = false;
+// 		options.TokenValidationParameters = new TokenValidationParameters
+// 		{
+// 			ValidateIssuer = true,             // Valider l'émetteur (issuer) du jeton
+// 			ValidateAudience = true,           // Valider l'audience du jeton
+// 			ValidateLifetime = true,           // Valider la durée de vie du jeton
+// 			ValidateIssuerSigningKey = true,   // Valider la signature du jeton
 
-			ValidIssuer = JwtSettings["Issuer"],       // Émetteur (issuer) valide
-			ValidAudience = JwtSettings["Audience"],   // Audience valide
-			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)) 
-		};
-	});
+// 			ValidIssuer = JwtSettings["Issuer"],       // Émetteur (issuer) valide
+// 			ValidAudience = JwtSettings["Audience"],   // Audience valide
+// 			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)) 
+// 		};
+// 	});
 
-builder.Services.AddAuthorization(options =>
- {
-	 // Politique d'autorisation pour les administrateurs
-	 options.AddPolicy("AdminPolicy", policy =>
-		 policy.RequireRole(nameof(UtilisateurDto.Privilege.Administrateur))
-			   .RequireAuthenticatedUser()  // L'utilisateur doit être authentifié
-			   .AddAuthenticationSchemes("JwtAuthorization"));
+// builder.Services.AddAuthorization(options =>
+//  {
+// 	 // Politique d'autorisation pour les administrateurs
+// 	 options.AddPolicy("AdminPolicy", policy =>
+// 		 policy.RequireRole(nameof(UtilisateurDto.Privilege.Administrateur))
+// 			   .RequireAuthenticatedUser()
+// 			   .AddAuthenticationSchemes("JwtAuthorization"));
 
-	 options.AddPolicy("UserPolicy", policy =>
-			   policy.RequireAuthenticatedUser() 
-			   .AddAuthenticationSchemes("BasicAuthentication"));
+// 	 options.AddPolicy("UserPolicy", policy =>
+// 			   policy.RequireAuthenticatedUser() 
+// 			   .AddAuthenticationSchemes("BasicAuthentication"));
 
- });
+//  });
 var app = builder.Build();
 
 /* 

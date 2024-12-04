@@ -2,19 +2,18 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Authentifications.Interfaces;
-using Authentifications.Middlewares;
 using Authentifications.Models;
 using Authentifications.Repositories;
 using Microsoft.IdentityModel.Tokens;
 namespace Authentifications.Services;
-public class JwtBearerAuthentificationService : IJwtToken
+public class JwtBearerAuthenticationService : IJwtToken
 {
-	private readonly JwtBearerAuthentificationRepository jwtBearerAuthentificationRepository;
+	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository ;
 	private readonly IConfiguration configuration;
-	public JwtBearerAuthentificationService(IConfiguration configuration, JwtBearerAuthentificationRepository jwtBearerAuthentificationRepository)
+	public JwtBearerAuthenticationService(IConfiguration configuration, JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository)
 
 	{
-		this.jwtBearerAuthentificationRepository = jwtBearerAuthentificationRepository;
+		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;
 		this.configuration = configuration;
 
 	}
@@ -31,14 +30,9 @@ public class JwtBearerAuthentificationService : IJwtToken
 		if (!BCryptResult.Equals(true)) { return false; }
 		return true;
 	}
-	public async Task<TokenResult> GetToken(string email, string password)
+	public async Task<TokenResult> GetToken(string email)
 	{
-		var utilisateur = jwtBearerAuthentificationRepository.GetUserFilterByEmailAddress(email);
-		if (utilisateur.Role == UtilisateurDto.Privilege.Utilisateur)
-		{
-			throw new AuthentificationBasicException($"{utilisateur.Nom} doesn't have the right privilege for JWT Token.");
-		}
-
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email,adminOnly: true);
 		await Task.Delay(500);
 		return new TokenResult
 		{
@@ -58,7 +52,7 @@ public class JwtBearerAuthentificationService : IJwtToken
 	public string GenerateJwtToken(string email)
 	{
 
-		var utilisateur = jwtBearerAuthentificationRepository.GetUserByFilter(email, adminOnly: true);
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email, adminOnly: true);
 
 		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();

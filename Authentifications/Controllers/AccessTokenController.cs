@@ -9,11 +9,11 @@ namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
-	private readonly JwtBearerAuthentificationService jwtToken;
+	private readonly JwtBearerAuthenticationService jwtToken;
 	private readonly ApiContext context; // Que pour les tests ne pas faire ceci dans un controller
 	private readonly AuthentificationBasicService basic;
 
-	public AccessTokenController(JwtBearerAuthentificationService jwtToken, ApiContext context, AuthentificationBasicService basic)
+	public AccessTokenController(JwtBearerAuthenticationService jwtToken, ApiContext context, AuthentificationBasicService basic)
 	{
 		this.jwtToken = jwtToken;
 		this.context = context;
@@ -43,7 +43,7 @@ public class AccessTokenController : ControllerBase
 			return Unauthorized(new { Errors = "Invalid email or password" });
 		}
 
-		var result = await jwtToken.GetToken(email, password);
+		var result = await jwtToken.GetToken(email);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message }); 
