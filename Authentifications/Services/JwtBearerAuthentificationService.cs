@@ -58,7 +58,8 @@ public class JwtBearerAuthentificationService : IJwtToken
 	public string GenerateJwtToken(string email)
 	{
 
-		var utilisateur = jwtBearerAuthentificationRepository.GetUserWithAdminPrivilege(email);
+		var utilisateur = jwtBearerAuthentificationRepository.GetUserByFilter(email, adminOnly: true);
+
 		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var tokenDescriptor = new SecurityTokenDescriptor
@@ -79,4 +80,5 @@ public class JwtBearerAuthentificationService : IJwtToken
 		return token;
 
 	}
+
 }

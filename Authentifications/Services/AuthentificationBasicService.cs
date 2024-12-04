@@ -22,7 +22,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 	internal async Task<bool> AuthenticateAsync(string email, string password)
 	{
-		var utilisateur = authentificationBasic.RetrieveCredentials(email); //Trop d'appels vers la data pour la meme ressources 
+		var utilisateur = authentificationBasic.RetrieveCredentials(email); 
 		if (utilisateur != null)
 		{
 			return utilisateur.CheckHashPassword(password);
@@ -38,7 +38,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		try
 		{
 			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
-			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase)) //C'etait Basic avant
+			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
 				return AuthenticateResult.Fail("Invalid Authorization header format");
 
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
@@ -64,5 +64,6 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
 		}
 	}
+	
 
 }

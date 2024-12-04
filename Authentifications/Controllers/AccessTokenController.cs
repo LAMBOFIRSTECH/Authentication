@@ -1,17 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
-using Authentifications.Interfaces;
 using Authentifications.DataBaseContext;
 using Microsoft.AspNetCore.Authorization;
-using Authentifications.Models;
 using Authentifications.Repositories;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using System.Text;
 using Authentifications.Services;
 
 namespace Authentifications.Controllers;
-// [ApiController] il gère lui meme les messages d'erreurs
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
@@ -26,7 +20,7 @@ public class AccessTokenController : ControllerBase
 		this.basic = basic;
 
 	}
-	/// <param name="email"></param>// je veux le mot de passe utilisateur ici
+	/// <param name="email"></param>
 	/// <param name="password"></param> 
 	/// <returns></returns>
 	[HttpPost("login")]
@@ -52,11 +46,8 @@ public class AccessTokenController : ControllerBase
 		var result = await jwtToken.GetToken(email, password);
 		if (!result.Response)
 		{
-			return Unauthorized(new { result.Message }); // Libérer le controller dans le middleware
+			return Unauthorized(new { result.Message }); 
 		}
-		var credentials = $"{email}:{password}";
-		var encodedCredentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-		Response.Headers.Add("Authorization", $"Basic {encodedCredentials}");
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 
