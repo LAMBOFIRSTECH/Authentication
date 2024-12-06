@@ -9,9 +9,6 @@
             <param name="password"></param> 
             <returns></returns>
         </member>
-        <member name="M:Authentifications.DataBaseContext.ApiContext.GetUsersData">
-            
-        </member>
         <member name="T:Authentifications.Models.TokenResult">
             <summary>
             Gestion du token JWT.

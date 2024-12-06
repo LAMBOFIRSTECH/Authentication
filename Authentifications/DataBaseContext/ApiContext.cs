@@ -1,39 +1,64 @@
+using System.Collections;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
+using Authentifications.Middlewares;
 using Authentifications.Models;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Authentifications.DataBaseContext;
 public class ApiContext
 {
 
-	//private readonly HttpClient _httpClient;
-	//private readonly string _apiKey;
-	public ApiContext() //
+	private readonly HttpClient _httpClient;
+	private readonly IConfiguration configuration;
+	public ApiContext(IConfiguration configuration, HttpClient _httpClient)
 	{
-		// _httpClient = httpClientFactory.CreateClient();
-		// _httpClient.BaseAddress = new Uri(configuration["ApiSettings:BaseUrl"]);
 
-		// Charger le secret depuis l'environnement ou User Secrets
-		//_apiKey = configuration["ApiKey"];
+		this._httpClient = _httpClient;
+		this.configuration = configuration;
 	}
 
-	///
-	// public async Task<string> GetUsersDataAsync()
-	// {
-	// 	var request = new HttpRequestMessage(HttpMethod.Get, "/users");
-	// 	// request.Headers.Add("Authorization", $"Bearer {_apiKey}"); Plustard
-
-	// 	var response = await _httpClient.SendAsync(request);
-	// 	response.EnsureSuccessStatusCode();
-
-	// 	return await response.Content.ReadAsStringAsync(); désérialiser dans le Dto
-	// }
-	public List<UtilisateurDto> GetUsersData()
+	public async Task<List<UtilisateurDto>> GetUsersDataAsync()
 	{
-		var utilisateurs = new List<UtilisateurDto>
+		var BaseUrl = configuration["ApiSettings:BaseUrl"];
+		var certificateFile = configuration["Certificate:File"];
+		var certificatePassword = configuration["Certificate:Password"];
+
+		// Charger le certificat
+		var certificate = new X509Certificate2(certificateFile, certificatePassword);
+
+		// Créer un HttpClientHandler et ajouter le certificat
+		var handler = new HttpClientHandler();
+		handler.ClientCertificates.Add(certificate);
+		handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, certChain, sslPolicyErrors) =>
 		{
-			new UtilisateurDto { ID = Guid.NewGuid(), Nom = "Alice", Email = "alice@example.com", Role = UtilisateurDto.Privilege.Administrateur,Pass="$2a$11$kIxlSXgTOxaUNuHZFck6duPdOjY1IBq/ag64xxYQO5hMj.0yzg3ma" },
-			new UtilisateurDto { ID = Guid.NewGuid(), Nom = "Bob", Email = "bob@example.com", Role = UtilisateurDto.Privilege.Utilisateur,Pass="$2a$11$kIxlSXgTOxaUNuHZFck6duPdOjY1IBq/ag64xxYQO5hMj.0yzg3ma" },
-			new UtilisateurDto { ID = Guid.NewGuid(), Nom = "Charlie", Email = "charlie@example.com", Role = UtilisateurDto.Privilege.Utilisateur,Pass="$2y$10$XeAX1jtJqMpO0BXjKvk5seNgZLPSpPvquu1Q2RMP4pMvrxrJ7CVD2" }
+			// Accepter uniquement si la chaîne de certification est valide
+			if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+			{
+				return true;
+			}
+
+			// Loguer les erreurs pour un diagnostic logger plustard on doit le use
+			Console.WriteLine($"Erreur SSL détectée : {sslPolicyErrors}");
+			return false; 
 		};
+		using var clientWithCertificate = new HttpClient(handler)
+		{
+			BaseAddress = new Uri(BaseUrl)
+		};
+
+		var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
+
+		// Il faut trouver le moyen de fournir le certificat pour "https://localhost:7082" de TasksManagment lors de l'envoie de la requete
+		var response = await _httpClient.SendAsync(request);
+		response.EnsureSuccessStatusCode();
+		if (response.ReasonPhrase == "No Content")
+		{
+			throw new Exception($"{(int)response.StatusCode}: No data to retrieve collection is empty check the former API");
+		}
+		var content = await response.Content.ReadAsStringAsync();
+		var utilisateurs = JsonConvert.DeserializeObject<List<UtilisateurDto>>(content)!;
 		return utilisateurs;
 	}
 }

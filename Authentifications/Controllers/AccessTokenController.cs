@@ -26,7 +26,6 @@ public class AccessTokenController : ControllerBase
 	[HttpPost("login")]
 	public async Task<ActionResult> Authentificate([EmailAddress] string email, [DataType(DataType.Password)] string password)
 	{
-
 		if (!ModelState.IsValid)
 		{
 			// Ajouter les erreurs de validation dans HttpContext.Items
@@ -48,14 +47,14 @@ public class AccessTokenController : ControllerBase
 		{
 			return Unauthorized(new { result.Message }); 
 		}
+
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 
-	[Authorize(Policy = "AdminPolicy")]
+	//[Authorize]
 	[HttpGet("users")]
 	public async Task<ActionResult> Users()
 	{
-		await Task.Delay(10);
-		return Ok(context.GetUsersData().ToList());
+		return Ok(await context.GetUsersDataAsync());
 	}
 }

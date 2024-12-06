@@ -5,7 +5,6 @@ namespace Authentifications.Middlewares;
 public class ValidationHandlingMiddleware
 {
 	private readonly RequestDelegate _next;
-
 	public ValidationHandlingMiddleware(RequestDelegate next)
 	{
 		_next = next;
@@ -18,7 +17,6 @@ public class ValidationHandlingMiddleware
 		}
 		catch (Exception ex)
 		{
-			// Gestion des exceptions non gérées (par exemple : erreurs 500)
 			await HandleExceptionAsync(context, ex);
 		}
 		// Vérifier si le modèle est invalide et gérer manuellement l'erreur 400
@@ -34,11 +32,9 @@ public class ValidationHandlingMiddleware
 				Status = 400,
 				Errors = validationErrors
 			};
-
 			await context.Response.WriteAsJsonAsync(response);
 		}
 	}
-
 	private async Task HandleExceptionAsync(HttpContext context, Exception exception)
 	{
 		context.Response.ContentType = "application/json";
@@ -72,24 +68,22 @@ public class ValidationHandlingMiddleware
 				response.Message = exception.Message;
 				break;
 
-			case ArgumentException:
-				context.Response.StatusCode = StatusCodes.Status400BadRequest;
-				response.Type = "BadRequest";
-				response.Title = "Invalid argument provided.";
-				response.Status = StatusCodes.Status400BadRequest;
-				break;
 			case KeyNotFoundException:
 				context.Response.StatusCode = StatusCodes.Status404NotFound;
 				response.Type = "NotFound";
 				response.Title = "The requested resource was not found.";
 				response.Status = StatusCodes.Status404NotFound;
 				break;
+
+			case ArgumentException:
+				context.Response.StatusCode = StatusCodes.Status400BadRequest;
+				response.Type = "BadRequest";
+				response.Title = "Invalid argument provided.";
+				response.Status = StatusCodes.Status400BadRequest;
+				break;
 			default:
 				break;
 		}
-
 		await context.Response.WriteAsJsonAsync(response);
 	}
-
-
 }

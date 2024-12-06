@@ -64,7 +64,7 @@ if (conStrings == null)
 {
 	throw new Exception("La chaine de connection à la base de données est nulle"); // A supprimer on va lire le endpoints de l'api de base
 }
-
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ApiContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRouting();
@@ -127,7 +127,7 @@ builder.Services.AddAuthentication("BasicAuthentication")
 // 		 policy.RequireRole(nameof(UtilisateurDto.Privilege.Administrateur))
 // 			   .RequireAuthenticatedUser()
 // 			   .AddAuthenticationSchemes("JwtAuthorization"));
-
+ 
 // 	 options.AddPolicy("UserPolicy", policy =>
 // 			   policy.RequireAuthenticatedUser() 
 // 			   .AddAuthenticationSchemes("BasicAuthentication"));

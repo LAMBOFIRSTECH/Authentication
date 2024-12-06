@@ -19,7 +19,6 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;  
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService; 
 	}
-
 	internal async Task<bool> AuthenticateAsync(string email, string password)
 	{
 		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email); 
@@ -34,13 +33,11 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	{
 		if (!Request.Headers.ContainsKey("Authorization"))
 			return AuthenticateResult.Fail("Authorization header missing");
-
 		try
 		{
 			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
 			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
 				return AuthenticateResult.Fail("Invalid Authorization header format");
-
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
 			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
 			var email = credentials[0];
@@ -64,6 +61,4 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
 		}
 	}
-	
-
 }

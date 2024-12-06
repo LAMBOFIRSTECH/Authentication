@@ -41,6 +41,7 @@
 /home/lambo-ubuntu/Authentifications/obj/Debug/net6.0/Authentifications.genruntimeconfig.cache
 /home/lambo-ubuntu/Authentifications/obj/Debug/net6.0/ref/Authentifications.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/appsettings.Development.json
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/response.json
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Authentifications
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Authentifications.deps.json
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Authentifications.runtimeconfig.json
