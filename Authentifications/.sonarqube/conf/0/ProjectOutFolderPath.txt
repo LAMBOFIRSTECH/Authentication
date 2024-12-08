@@ -1,0 +1,1 @@
+/home/lambo-ubuntu/Authentication/Authentifications/.sonarqube/out/0

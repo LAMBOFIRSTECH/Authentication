@@ -10,7 +10,7 @@ public class JwtBearerAuthenticationRepository
 	{
 		this.context = context;
 	}
-	public UtilisateurDto GetUserByFilter(string email, bool? adminOnly = null)
+	public UtilisateurDto GetUserByFilter(string email, bool? adminOnly = null) //Revoir pas besoin de rechercher la liste des utilisateurs seul le user avec le bon mail suffit
 	{
 		IQueryable<UtilisateurDto> query = context.GetUsersDataAsync().Result.AsQueryable();
 		if (!string.IsNullOrEmpty(email))

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Authentifications.DataBaseContext;
-using Microsoft.AspNetCore.Authorization;
 using Authentifications.Repositories;
 using Authentifications.Services;
 
@@ -45,7 +44,7 @@ public class AccessTokenController : ControllerBase
 		var result = await jwtToken.GetToken(email);
 		if (!result.Response)
 		{
-			return Unauthorized(new { result.Message }); 
+			return Unauthorized(new { result.Message });
 		}
 
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });

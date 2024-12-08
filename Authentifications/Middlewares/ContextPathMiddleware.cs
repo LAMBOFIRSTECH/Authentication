@@ -4,7 +4,6 @@ namespace Authentifications.Middlewares
     {
         private readonly RequestDelegate _next;
         private readonly PathString _contextPath;
-
         public ContextPathMiddleware(RequestDelegate next, string contextPath)
         {
             _next = next;
@@ -24,4 +23,3 @@ namespace Authentifications.Middlewares
         }
     }
 }
-

@@ -8,26 +8,26 @@ using Microsoft.Extensions.Options;
 namespace Authentifications.Repositories;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository ; 
+	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository;
 	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
-	public AuthentificationBasicService(JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository,JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	public AuthentificationBasicService(JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository, JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
 	ISystemClock clock)
 	: base(options, logger, encoder, clock)
 	{
-		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;  
-		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService; 
+		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;
+		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 	}
 	internal async Task<bool> AuthenticateAsync(string email, string password)
 	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email); 
-		if (utilisateur != null)
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email);
+		if (utilisateur == null)
 		{
-			return utilisateur.CheckHashPassword(password);
+			return false;
 		}
-		await Task.Delay(1000); 
-		return false;
+		await Task.Delay(1000);
+		return utilisateur.CheckHashPassword(password);
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{

@@ -1,16 +1,11 @@
 using System.Reflection;
-using System.Text;
-using Authentifications;
 using Authentifications.DataBaseContext;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
-using Authentifications.Models;
 using Authentifications.Repositories;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,12 +53,6 @@ builder.Configuration
 	.SetBasePath(Directory.GetCurrentDirectory())
 	.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: false, reloadOnChange: false);
 
-var item = builder.Configuration.GetSection("ConnectionStrings");
-var conStrings = item["DefaultConnection"];
-if (conStrings == null)
-{
-	throw new Exception("La chaine de connection à la base de données est nulle"); // A supprimer on va lire le endpoints de l'api de base
-}
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ApiContext>();
 builder.Services.AddControllersWithViews();

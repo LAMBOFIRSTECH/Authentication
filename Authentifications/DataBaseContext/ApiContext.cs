@@ -5,52 +5,58 @@ using Authentifications.Middlewares;
 using Authentifications.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-
+using Microsoft.Extensions.Logging;
 namespace Authentifications.DataBaseContext;
 public class ApiContext
 {
-
 	private readonly HttpClient _httpClient;
 	private readonly IConfiguration configuration;
-	public ApiContext(IConfiguration configuration, HttpClient _httpClient)
+	private readonly ILogger<ApiContext> _logger;
+	public ApiContext(IConfiguration configuration, HttpClient _httpClient, ILogger<ApiContext> logger)
 	{
 
 		this._httpClient = _httpClient;
 		this.configuration = configuration;
-	}
-
-	public async Task<List<UtilisateurDto>> GetUsersDataAsync()
-	{
+		_logger = logger;
 		var BaseUrl = configuration["ApiSettings:BaseUrl"];
 		var certificateFile = configuration["Certificate:File"];
 		var certificatePassword = configuration["Certificate:Password"];
-
-		// Charger le certificat
 		var certificate = new X509Certificate2(certificateFile, certificatePassword);
-
-		// Créer un HttpClientHandler et ajouter le certificat
 		var handler = new HttpClientHandler();
 		handler.ClientCertificates.Add(certificate);
 		handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, certChain, sslPolicyErrors) =>
 		{
-			// Accepter uniquement si la chaîne de certification est valide
 			if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
 			{
-				return true;
+				return true; 
 			}
 
-			// Loguer les erreurs pour un diagnostic logger plustard on doit le use
-			Console.WriteLine($"Erreur SSL détectée : {sslPolicyErrors}");
-			return false; 
+			_logger.LogError("Erreur SSL détectée : {SslErrors}", sslPolicyErrors);
+			return false; // Rejeter le certificat
 		};
-		using var clientWithCertificate = new HttpClient(handler)
+
+		_httpClient = new HttpClient(handler)
 		{
 			BaseAddress = new Uri(BaseUrl)
 		};
+	}
+// public async Task<UtilisateurDto?> GetUserByEmailAsync(string email)
+// {
+//     var request = new HttpRequestMessage(HttpMethod.Get, $"/lambo-tasks-management/api/v1/users?email={email}");
+//     var response = await _httpClient.SendAsync(request);
+//     if (response.IsSuccessStatusCode)
+//     {
+//         var content = await response.Content.ReadAsStringAsync();
+//         return JsonConvert.DeserializeObject<UtilisateurDto>(content);
+//     }
+//     return null;
+// }
 
+	public async Task<List<UtilisateurDto>> GetUsersDataAsync() // On oublie ceci pour permettre une séparation totale du service pas d'appele au service TASKSMANAGEMENT quoi que
+	{
+		try
+		{
 		var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
-
-		// Il faut trouver le moyen de fournir le certificat pour "https://localhost:7082" de TasksManagment lors de l'envoie de la requete
 		var response = await _httpClient.SendAsync(request);
 		response.EnsureSuccessStatusCode();
 		if (response.ReasonPhrase == "No Content")
@@ -60,5 +66,20 @@ public class ApiContext
 		var content = await response.Content.ReadAsStringAsync();
 		var utilisateurs = JsonConvert.DeserializeObject<List<UtilisateurDto>>(content)!;
 		return utilisateurs;
+			
+		}catch (Exception ex)
+		{
+			  _logger.LogError(ex, "Erreur lors de l'appel à l'API");
+			throw;
+		}
+		//ParallelExecutionMode etre gérer  les refresh token
+// 		Pratique courante dans les systèmes modernes :
+// Dans les systèmes modernes, il est fréquent de combiner les deux approches :
+
+// Accès direct à la base de données pour la première authentification (par exemple, lors de la connexion initiale de l'utilisateur).
+// Utilisation d'un cache (store interne) [redis] pour les authentifications répétées et pour stocker temporairement des informations comme les rôles d'utilisateur, les tokens JWT, etc.
+// Cela permet de bénéficier des avantages des deux solutions en termes de sécurité, de performance, et de scalabilité.
+// RABBIT MQ ajouter Un service d'audit pour enregistrer les tentatives de connexion.
+
 	}
 }

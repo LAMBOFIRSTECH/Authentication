@@ -38,16 +38,11 @@ public class JwtBearerAuthenticationService : IJwtToken
 			Token = GenerateJwtToken(utilisateur.Email!)
 		};
 	}
-	// var JwtSettings = configuration.GetSection("JwtSettings");
-	// int secretKeyLength = int.Parse(JwtSettings["JwtSecretKey"]); // en faite c'est ça la clé d'api que l'on génère depuis hcp (hashicorp)
-	// var randomSecretKey = new RandomUserSecret(); // n'a pas lieu d'exister
-	// string signingKey = randomSecretKey.GenerateRandomKey(secretKeyLength);
-	// return signingKey;
 	public string GetSigningKey()
 	{
 		RSA rsa = RSA.Create(2048);
 		RSAParameters privateKey = rsa.ExportParameters(true);
-		RSAParameters publicKey = rsa.ExportParameters(false);
+		RSAParameters publicKey = rsa.ExportParameters(false); // Rotation des clés
 
 		var rsaSecurityKey = new RsaSecurityKey(rsa);
 		return rsaSecurityKey.ToString();
