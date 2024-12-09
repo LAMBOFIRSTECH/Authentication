@@ -50,6 +50,11 @@ jobs:
       - name: Verify SonarScanner Java Version
         run: ~/.sonar-scanner/bin/sonar-scanner -v
 
+      - name: Verify SonarScanner Installation
+        run: |
+          ls -l ~/.sonar-scanner/bin/sonar-scanner
+          ~/.sonar-scanner/bin/sonar-scanner -v
+          
       - name: Run SonarQube Analysis
         shell: bash
         env:
