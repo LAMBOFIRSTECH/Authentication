@@ -28,7 +28,7 @@ jobs:
       - name: Add JAVA_HOME to PATH
         run: echo "PATH=$JAVA_HOME/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Verify Default Java Version
+      - name: Verify Java Version
         run: java -version
 
       - name: Cache SonarQube Scanner
@@ -45,18 +45,19 @@ jobs:
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
           rm -rf ~/.sonar-scanner
           mv sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
-          echo "PATH=$PATH:~/.sonar-scanner/bin" >> $GITHUB_ENV
+          echo "PATH=$HOME/.sonar-scanner/bin:$PATH" >> $GITHUB_ENV
 
       - name: Verify SonarScanner Java Version
-        run: sonar-scanner -v
+        run: ~/.sonar-scanner/bin/sonar-scanner -v
 
       - name: Run SonarQube Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          PATH: ${{ env.PATH }}
+          JAVA_HOME: $JAVA_HOME
+          PATH: $JAVA_HOME/bin:$PATH
         run: |
-          sonar-scanner \
+          ~/.sonar-scanner/bin/sonar-scanner \
           -Dsonar.projectKey=Authentication \
           -Dsonar.sources=. \
           -Dsonar.host.url=$SONAR_HOST_URL \
