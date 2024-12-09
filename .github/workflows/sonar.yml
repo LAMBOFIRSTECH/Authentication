@@ -56,7 +56,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           JAVA_HOME: $JAVA_HOME
-          PATH: $JAVA_HOME/bin:$PATH
+          PATH: $JAVA_HOME/bin:$PATH:~/.sonar-scanner/bin
         run: |
           ~/.sonar-scanner/bin/sonar-scanner \
           -Dsonar.projectKey=Authentication \
