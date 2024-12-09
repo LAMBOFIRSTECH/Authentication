@@ -8,7 +8,7 @@ on:
 jobs:
   sonar-analysis:
     name: Analyze Code with SonarQube
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       # 1. Checkout the code

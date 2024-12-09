@@ -1,1 +1,0 @@
-bRL/home/lambo-ubuntu/Authentication/Authentifications/Authentifications.csproj¢net6.0òCSharp10
