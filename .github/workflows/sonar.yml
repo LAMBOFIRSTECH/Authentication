@@ -22,10 +22,13 @@ jobs:
           java-version: 17
           distribution: 'temurin'
 
-      - name: Set JAVA_HOME
+      - name: Set JAVA_HOME for Java 17
         run: echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
 
-      - name: Verify Java Version
+      - name: Add JAVA_HOME to PATH
+        run: echo "PATH=$JAVA_HOME/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Verify Default Java Version
         run: java -version
 
       - name: Cache SonarQube Scanner
@@ -40,7 +43,7 @@ jobs:
         run: |
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-          rm -rf ~/.sonar-scanner # Supprime le répertoire existant
+          rm -rf ~/.sonar-scanner
           mv sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
           echo "PATH=$PATH:~/.sonar-scanner/bin" >> $GITHUB_ENV
 
