@@ -51,6 +51,7 @@ jobs:
         run: ~/.sonar-scanner/bin/sonar-scanner -v
 
       - name: Run SonarQube Analysis
+        shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
