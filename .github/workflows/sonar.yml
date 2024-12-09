@@ -40,7 +40,8 @@ jobs:
         run: |
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-          mv -f sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
+          rm -rf ~/.sonar-scanner # Supprime le répertoire existant
+          mv sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
           echo "PATH=$PATH:~/.sonar-scanner/bin" >> $GITHUB_ENV
 
       - name: Verify SonarScanner Java Version
