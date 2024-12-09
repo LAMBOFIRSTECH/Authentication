@@ -46,7 +46,7 @@ jobs:
       - name: Verify SonarScanner Java Version
         run: sonar-scanner -v
 
-      - name: Run SonarQube Analysis
+      - name: Run SonarQube Analysis using secrets
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
