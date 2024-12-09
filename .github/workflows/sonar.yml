@@ -45,7 +45,12 @@ jobs:
           rm -rf ~/.sonar-scanner
           mv sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
           echo "PATH=$HOME/.sonar-scanner/bin:$PATH" >> $GITHUB_ENV
-          
+      - name: Debug Environment
+        run: |
+          echo $PATH
+          echo $JAVA_HOME
+          ~/.sonar-scanner/bin/sonar-scanner --version
+     
       - name: Run SonarQube Analysis
         shell: bash
         env:
