@@ -39,7 +39,7 @@ jobs:
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
           mv sonar-scanner-4.8.0.2856-linux ~/.sonar-scanner
-          echo "export PATH=$PATH:~/.sonar-scanner/bin" >> $GITHUB_ENV
+          echo "PATH=$PATH:~/.sonar-scanner/bin" >> $GITHUB_ENV
 
       # 5. Configure SonarQube and Analyze the code
       - name: Run SonarQube Analysis
