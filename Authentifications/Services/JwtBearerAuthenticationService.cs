@@ -30,12 +30,12 @@ public class JwtBearerAuthenticationService : IJwtToken
 	}
 	public async Task<TokenResult> GetToken(string email)
 	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email, adminOnly: true);
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email);
 		await Task.Delay(500);
 		return new TokenResult
 		{
 			Response = true,
-			Token = GenerateJwtToken(utilisateur.Email!)
+			Token = GenerateJwtToken(utilisateur.Result.Email!)
 		};
 	}
 	public string GetSigningKey()
@@ -49,15 +49,14 @@ public class JwtBearerAuthenticationService : IJwtToken
 	}
 	public string GenerateJwtToken(string email)
 	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email, adminOnly: true);
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email);
 		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
-			Subject = new ClaimsIdentity(new[] {
-					new Claim(ClaimTypes.Name, utilisateur.Nom!),
-					new Claim(ClaimTypes.Email, utilisateur.Email!),
-					new Claim(ClaimTypes.Role, utilisateur.Role.ToString()),
+			Subject = new ClaimsIdentity(new[] {	
+					new Claim(ClaimTypes.Email, utilisateur.Result.Email!),
+					//new Claim(ClaimTypes.Role, utilisateur.Result.Role.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
@@ -67,7 +66,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 			Audience = null,
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
 		};
-		var additionalAudiences = new[] {"https://audience2.com","https://localhost:9500" };
+		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500" };
 		tokenDescriptor.Claims = new Dictionary<string, object>
 		{
 			{ JwtRegisteredClaimNames.Aud, additionalAudiences }

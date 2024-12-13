@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
+using Authentifications.Models;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -10,7 +11,8 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 {
 	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository;
 	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
-	public AuthentificationBasicService(JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository, JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	private readonly RedisCacheService redisCacheService;
+	public AuthentificationBasicService(RedisCacheService redisCacheService, JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository, JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
 	ISystemClock clock)
@@ -18,16 +20,21 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	{
 		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
+		this.redisCacheService = redisCacheService;
 	}
-	internal async Task<bool> AuthenticateAsync(string email, string password)
+	internal async Task<(bool Success, string? Value)> AuthenticateAsync(string clientID)
 	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByFilter(email);
-		if (utilisateur == null)
+		var utilisateur = await jwtBearerAuthenticationRepository.GetUserByEmails(clientID);
+		if (utilisateur is null)
 		{
-			return false;
+			throw new ArgumentNullException(nameof(utilisateur));
+		}
+		if (!utilisateur.Email!.Equals(null) || !utilisateur.Pass!.Equals(null))
+		{
+			throw new KeyNotFoundException();
 		}
 		await Task.Delay(1000);
-		return utilisateur.CheckHashPassword(password);
+		return (true, utilisateur.clientID);
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
@@ -46,7 +53,19 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			if (credentials.Length != 2)
 				return AuthenticateResult.Fail("Invalid Authorization header format");
 
-			if (await AuthenticateAsync(email, password))
+			// On va récupérer dans la bd redis le user en fonction de l'email
+			var utilisateur = await redisCacheService.GetCredentialsAsync(email);
+			if (utilisateur is null)
+			{
+				throw new ArgumentNullException(nameof(utilisateur));
+			}
+			if (!utilisateur.Email!.Equals(email) || !utilisateur.Pass!.Equals(utilisateur.CheckHashPassword(password)))
+			{
+				throw new KeyNotFoundException();
+			}
+			//utilisateur.Pass!.Equals(utilisateur.CheckHashPassword(password));
+			var result = await AuthenticateAsync(utilisateur.clientID!);
+			if (result.Success && result.Value!.Equals(utilisateur.clientID))
 			{
 				jwtBearerAuthenticationService.GenerateJwtToken(email);
 			}

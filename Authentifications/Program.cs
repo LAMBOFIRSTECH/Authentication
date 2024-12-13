@@ -76,6 +76,7 @@ builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
 */
 builder.Services.AddScoped<JwtBearerAuthenticationRepository>();
 builder.Services.AddScoped<JwtBearerAuthenticationService>();
+builder.Services.AddScoped<RedisCacheService>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -83,6 +84,13 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
+var redisConfig = builder.Configuration.GetSection("Redis");
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfig["ConnectionString"];
+    options.InstanceName = redisConfig["InstanceName"];
+});
+
 	
 // C'est dans TasksManagementAPI toute cette partie
 
