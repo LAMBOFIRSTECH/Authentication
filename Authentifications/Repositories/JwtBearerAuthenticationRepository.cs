@@ -29,7 +29,7 @@ public class JwtBearerAuthenticationRepository
 	// }
 	public async Task<UtilisateurDto> GetUserByEmail(string email, bool? adminOnly)
 	{
-		var utilisateur = await redisCache.GetCredentialsAsync(email);
+		var utilisateur = await redisCache.GetCredentialsAsync(email,null);
 		if (utilisateur == null)
 		{
 			throw new AuthentificationBasicException("No data to retrieve user doesn't exist");
@@ -40,9 +40,9 @@ public class JwtBearerAuthenticationRepository
 		}
 		return utilisateur;
 	}
-		public async Task<UtilisateurDto> GetUserByEmails(string clientID)
+		public async Task<UtilisateurDto> GetUserByEmails(string email,string password)
 	{
-		return await redisCache.GetCredentialsAsync(clientID);
+		return await redisCache.GetCredentialsAsync(email,password);
 		// if (utilisateur == null)
 		// {
 		// 	throw new AuthentificationBasicException("No data to retrieve user doesn't exist");

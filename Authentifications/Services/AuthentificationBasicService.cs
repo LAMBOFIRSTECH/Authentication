@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
-using Authentifications.Models;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -22,19 +21,15 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.redisCacheService = redisCacheService;
 	}
-	internal async Task<(bool Success, string? Value)> AuthenticateAsync(string clientID)
+	internal async Task<bool> AuthenticateAsync(string email,string password)
 	{
-		var utilisateur = await jwtBearerAuthenticationRepository.GetUserByEmails(clientID);
+		var utilisateur = await jwtBearerAuthenticationRepository.GetUserByEmails(email,password);
 		if (utilisateur is null)
 		{
-			throw new ArgumentNullException(nameof(utilisateur));
-		}
-		if (!utilisateur.Email!.Equals(null) || !utilisateur.Pass!.Equals(null))
-		{
-			throw new KeyNotFoundException();
+			return false;
 		}
 		await Task.Delay(1000);
-		return (true, utilisateur.clientID);
+		return utilisateur.CheckHashPassword(password);
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
@@ -54,7 +49,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 				return AuthenticateResult.Fail("Invalid Authorization header format");
 
 			// On va récupérer dans la bd redis le user en fonction de l'email
-			var utilisateur = await redisCacheService.GetCredentialsAsync(email);
+			var utilisateur = await redisCacheService.GetCredentialsAsync(email,password);
 			if (utilisateur is null)
 			{
 				throw new ArgumentNullException(nameof(utilisateur));
@@ -63,11 +58,9 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			{
 				throw new KeyNotFoundException();
 			}
-			//utilisateur.Pass!.Equals(utilisateur.CheckHashPassword(password));
-			var result = await AuthenticateAsync(utilisateur.clientID!);
-			if (result.Success && result.Value!.Equals(utilisateur.clientID))
+			if (await AuthenticateAsync(email,password))
 			{
-				jwtBearerAuthenticationService.GenerateJwtToken(email);
+				jwtBearerAuthenticationService.GenerateJwtToken(email,password);
 			}
 			return AuthenticateResult.Fail("email or password incrorrect");
 		}

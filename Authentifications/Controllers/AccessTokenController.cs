@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Authentifications.DataBaseContext;
 using Authentifications.Repositories;
 using Authentifications.Services;
-using System.Security.Cryptography;
-using System.Text;
-
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -37,24 +34,17 @@ public class AccessTokenController : ControllerBase
 			HttpContext.Items["ModelValidationErrors"] = validationErrors;
 			return StatusCode(422);
 		}
-		// check d'abord s'il nexiste pas dans redis 
-		string salt = "RandomUniqueSalt";
-		string clientID = "";
-		using (SHA256 sha256 = SHA256.Create())
+		var resultat= await redis.StoreCredentialsAsync(email, password);
+		if(!resultat)
 		{
-			string combined = $"{email}:{password}:{salt}";
-			byte[] bytes = Encoding.UTF8.GetBytes(combined);
-			byte[] hashBytes = sha256.ComputeHash(bytes);
-			clientID = Convert.ToHexString(hashBytes);
-			await redis.StoreCredentialsAsync(clientID, email, password, TimeSpan.FromMinutes(10));
-
+			return StatusCode(503, "Le service est temporairement indisponible. Réessayez plus tard.");
 		}
-		var isAuthenticated = await basic.AuthenticateAsync(clientID); //on donne le clientID à la place
-		if (!isAuthenticated.Success || isAuthenticated.Value != clientID)
+		var isAuthenticated = await basic.AuthenticateAsync(email, password);
+		if (!isAuthenticated)
 		{
 			return Unauthorized(new { Errors = "Invalid email or password" });
 		}
-		var result = await jwtToken.GetToken(email);
+		var result = await jwtToken.GetToken(email,password);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message });
