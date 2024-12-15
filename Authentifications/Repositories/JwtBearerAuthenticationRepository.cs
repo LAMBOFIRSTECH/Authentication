@@ -27,20 +27,20 @@ public class JwtBearerAuthenticationRepository
 	// 	}
 	// 	return query.FirstOrDefault()!;
 	// }
-	public async Task<UtilisateurDto> GetUserByEmail(string email, bool? adminOnly)
-	{
-		var utilisateur = await redisCache.GetCredentialsAsync(email,null);
-		if (utilisateur == null)
-		{
-			throw new AuthentificationBasicException("No data to retrieve user doesn't exist");
-		}
-		if (adminOnly.HasValue && adminOnly.Value && utilisateur.Role == UtilisateurDto.Privilege.Utilisateur)
-		{
-			throw new AuthentificationBasicException("This user doesn't have the right privilege for JWT Token.");
-		}
-		return utilisateur;
-	}
-		public async Task<UtilisateurDto> GetUserByEmails(string email,string password)
+	// public async Task<UtilisateurDto> GetUserByEmail(string email, bool? adminOnly)
+	// {
+	// 	var utilisateur = await redisCache.GetCredentialsAsync(email,null);
+	// 	if (utilisateur == null)
+	// 	{
+	// 		throw new AuthentificationBasicException("No data to retrieve user doesn't exist");
+	// 	}
+	// 	if (adminOnly.HasValue && adminOnly.Value && utilisateur.Role == UtilisateurDto.Privilege.Utilisateur)
+	// 	{
+	// 		throw new AuthentificationBasicException("This user doesn't have the right privilege for JWT Token.");
+	// 	}
+	// 	return utilisateur;
+	// }
+	public async Task<UtilisateurDto> GetUserByEmails(string email, string password)
 	{
 		return await redisCache.GetCredentialsAsync(email,password);
 		// if (utilisateur == null)

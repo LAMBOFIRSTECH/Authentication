@@ -1,9 +1,11 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using RedisDatabase = StackExchange.Redis.IDatabase;
 
 namespace Authentifications.Repositories;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
@@ -11,28 +13,39 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository;
 	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
 	private readonly RedisCacheService redisCacheService;
+	private readonly RedisDatabase redisDatabase;
+	private readonly ILogger<RedisCacheService> log;
 	public AuthentificationBasicService(RedisCacheService redisCacheService, JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository, JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
-	ISystemClock clock)
+	ISystemClock clock, ILogger<RedisCacheService> log, RedisDatabase redisDatabase)
 	: base(options, logger, encoder, clock)
 	{
 		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.redisCacheService = redisCacheService;
+		this.log = log;
+		this.redisDatabase = redisDatabase;
 	}
-	internal async Task<bool> AuthenticateAsync(string email,string password)
+	internal async Task<bool> AuthenticateAsync(string email, string password)
 	{
-		var utilisateur = await jwtBearerAuthenticationRepository.GetUserByEmails(email,password);
-		if (utilisateur is null)
+		string clientID = redisCacheService.GenerateClientId(email, password);
+		var user = await redisCacheService.GetCredentialsAsync(clientID);
+		if (user is null)
 		{
 			return false;
 		}
 		await Task.Delay(1000);
-		return utilisateur.CheckHashPassword(password);
+		if (!user.CheckHashPassword(password) || !user.Email!.Equals(email))
+		{
+			throw new KeyNotFoundException("Les infos de l'utilisateur sont invalides");
+		}
+		return true;
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
+		log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
+
 		if (!Request.Headers.ContainsKey("Authorization"))
 			return AuthenticateResult.Fail("Authorization header missing");
 		try
@@ -42,26 +55,27 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 				return AuthenticateResult.Fail("Invalid Authorization header format");
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
 			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
-			var email = credentials[0];
-			var password = credentials[1];
 
 			if (credentials.Length != 2)
 				return AuthenticateResult.Fail("Invalid Authorization header format");
 
-			// On va récupérer dans la bd redis le user en fonction de l'email
-			var utilisateur = await redisCacheService.GetCredentialsAsync(email,password);
-			if (utilisateur is null)
+			var email = credentials[0];
+			var password = credentials[1];
+			string clientID = redisCacheService.GenerateClientId(email, password);
+			// tester la connexion à la bd avant de save
+			var isConnected = redisDatabase.Multiplexer.IsConnected;
+			if (!isConnected)
 			{
-				throw new ArgumentNullException(nameof(utilisateur));
+				throw new InvalidOperationException("Redis n'est pas connecté.");
 			}
-			if (!utilisateur.Email!.Equals(email) || !utilisateur.Pass!.Equals(utilisateur.CheckHashPassword(password)))
+			log.LogInformation("Redis est connecté : {IsConnected}", isConnected);
+
+			await redisCacheService.StoreCredentialsAsync(clientID, email, password);
+			if (await AuthenticateAsync(email, password) == false)
 			{
-				throw new KeyNotFoundException();
+				return AuthenticateResult.Fail("Invalid email or password");
 			}
-			if (await AuthenticateAsync(email,password))
-			{
-				jwtBearerAuthenticationService.GenerateJwtToken(email,password);
-			}
+			jwtBearerAuthenticationService.GenerateJwtToken(email);
 			return AuthenticateResult.Fail("email or password incrorrect");
 		}
 		catch (FormatException)

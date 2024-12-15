@@ -1,22 +1,26 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using Authentifications.DataBaseContext;
+
 using Authentifications.Repositories;
 using Authentifications.Services;
+using System.Text;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
 	private readonly JwtBearerAuthenticationService jwtToken;
-	private readonly ApiContext context; // Que pour les tests ne pas faire ceci dans un controller
+	// private readonly ApiContext context; // Que pour les tests ne pas faire ceci dans un controller
 	private readonly AuthentificationBasicService basic;
 	private readonly RedisCacheService redis;
-	public AccessTokenController(JwtBearerAuthenticationService jwtToken, ApiContext context, AuthentificationBasicService basic, RedisCacheService redis)
+	private readonly HttpClient _httpClient;
+	private readonly ILogger<RedisCacheService> log;
+	public AccessTokenController(ILogger<RedisCacheService> log, JwtBearerAuthenticationService jwtToken, AuthentificationBasicService basic, RedisCacheService redis, HttpClient httpClient)
 	{
 		this.jwtToken = jwtToken;
-		this.context = context;
 		this.basic = basic;
 		this.redis = redis;
+		_httpClient = httpClient;
+		this.log = log;
 	}
 	/// <param name="email"></param>
 	/// <param name="password"></param> 
@@ -34,17 +38,23 @@ public class AccessTokenController : ControllerBase
 			HttpContext.Items["ModelValidationErrors"] = validationErrors;
 			return StatusCode(422);
 		}
-		var resultat= await redis.StoreCredentialsAsync(email, password);
-		if(!resultat)
+		string credentials = $"{email}:{password}";
+
+		// Step 2: Encode the credentials in Base64
+		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+		string authorizationHeader = $"Basic {base64Credentials}";
+		var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7103/api/v1/login")
 		{
-			return StatusCode(503, "Le service est temporairement indisponible. Réessayez plus tard.");
-		}
-		var isAuthenticated = await basic.AuthenticateAsync(email, password);
-		if (!isAuthenticated)
+			Headers = { { "Authorization", authorizationHeader } }
+		};
+		var response = await _httpClient.SendAsync(requestMessage);
+		if (response.IsSuccessStatusCode == false)
 		{
-			return Unauthorized(new { Errors = "Invalid email or password" });
+			return Unauthorized(new { Message = "Invalid credentials" });
 		}
-		var result = await jwtToken.GetToken(email,password);
+		await response.Content.ReadAsStringAsync();
+		log.LogInformation("Authentication successful");
+		var result = await jwtToken.GetToken(email, password);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message });
@@ -52,9 +62,9 @@ public class AccessTokenController : ControllerBase
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 	//[Authorize]
-	[HttpGet("users")]
-	public async Task<ActionResult> Users()
-	{
-		return Ok(await context.GetUsersDataAsync());
-	}
+	// [HttpGet("users")]
+	// public async Task<ActionResult> Users()
+	// {
+	// 	return Ok(await context.GetUsersDataAsync());
+	// }
 }

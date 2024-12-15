@@ -30,7 +30,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 	}
 	public async Task<TokenResult> GetToken(string email,string password)
 	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email,password);
+		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email, password);
 		if(utilisateur is null)
 		{
 			throw new KeyNotFoundException();
@@ -39,7 +39,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 		return new TokenResult
 		{
 			Response = true,
-			Token = GenerateJwtToken(utilisateur.Result.Email!,utilisateur.Result.Pass!)
+			Token = GenerateJwtToken(utilisateur.Result.Email!)
 		};
 	}
 	public string GetSigningKey()
@@ -51,8 +51,9 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var rsaSecurityKey = new RsaSecurityKey(rsa);
 		return rsaSecurityKey.ToString();
 	}
-	public string GenerateJwtToken(string email,string password)
+	public string GenerateJwtToken(string email)
 	{
+		string password= string.Empty;
 		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email,password);
 		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();

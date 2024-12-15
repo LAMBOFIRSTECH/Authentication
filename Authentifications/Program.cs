@@ -1,5 +1,4 @@
 using System.Reflection;
-using Authentifications.DataBaseContext;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
 using Authentifications.Repositories;
@@ -55,7 +54,7 @@ builder.Configuration
 	.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: false, reloadOnChange: false);
 
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<ApiContext>();
+// builder.Services.AddScoped<ApiContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRouting();
 builder.Services.AddHttpContextAccessor();
@@ -90,11 +89,7 @@ var redisConfig = builder.Configuration.GetSection("Redis");
 builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig["ConnectionString"]));
 
 // Configurer IDatabase (utilisé pour interagir directement avec Redis)
-builder.Services.AddScoped<IDatabase>(sp =>
-{
-    var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-    return connectionMultiplexer.GetDatabase();  // Obtenir l'IDatabase à partir de la connexion
-});
+builder.Services.AddSingleton<IDatabase>(provider => provider.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
 
 // Configurer le cache distribué avec StackExchange.Redis
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -102,6 +97,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = redisConfig["ConnectionString"]; // Utilisation de la chaîne de connexion
     options.InstanceName = redisConfig["InstanceName"]; // Nom d'instance optionnel
 });
+
 
 builder.Services.AddScoped<RedisCacheService>();
 
