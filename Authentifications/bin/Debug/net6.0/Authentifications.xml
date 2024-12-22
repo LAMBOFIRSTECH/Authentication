@@ -4,19 +4,9 @@
         <name>Authentifications</name>
     </assembly>
     <members>
-        <member name="M:Authentifications.Controllers.AccessTokenController.Authentificate(System.String,System.String)">
-            <param name="email"></param>
-            <param name="password"></param> 
-            <returns></returns>
-        </member>
         <member name="T:Authentifications.Models.TokenResult">
             <summary>
             Gestion du token JWT.
-            </summary>
-        </member>
-        <member name="P:Authentifications.Models.UtilisateurDto.clientID">
-            <summary>
-            Représente l'identifiant unique d'un utilisateur.
             </summary>
         </member>
     </members>

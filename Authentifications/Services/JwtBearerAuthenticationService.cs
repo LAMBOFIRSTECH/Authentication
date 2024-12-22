@@ -1,77 +1,87 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using Authentifications.Interfaces;
 using Authentifications.Models;
-using Authentifications.Repositories;
 using Microsoft.IdentityModel.Tokens;
+using VaultSharp;
+using VaultSharp.V1.AuthMethods.Token;
 namespace Authentifications.Services;
 public class JwtBearerAuthenticationService : IJwtToken
 {
-	private readonly JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository;
 	private readonly IConfiguration configuration;
-	public JwtBearerAuthenticationService(IConfiguration configuration, JwtBearerAuthenticationRepository jwtBearerAuthenticationRepository)
+	private RsaSecurityKey rsaSecurityKey;
+	private readonly ILogger<RsaSecurityKey> log;
+	public JwtBearerAuthenticationService(IConfiguration configuration,ILogger<RsaSecurityKey> log)
 	{
-		this.jwtBearerAuthenticationRepository = jwtBearerAuthenticationRepository;
 		this.configuration = configuration;
+		this.log = log;
+		rsaSecurityKey = GetOrCreateSigningKey();
 	}
-	public bool CheckUserSecret(string secretPass)
+	public async Task<TokenResult> GetToken(string email)
 	{
-		string secretUserPass = configuration["ConnectionStrings:SecretApiKey"]; //La clé privée est ici la clé publique dans TasksManagement_API Dev configuration["JwtSettings:JwtSecretKey"]; // Prod Environment.GetEnvironmentVariable("PasswordSecret")!; //
-		if (string.IsNullOrEmpty(secretUserPass))
-		{
-			throw new ArgumentException("La clé secrete est inexistante");
-		}
-		var Pass = BCrypt.Net.BCrypt.HashPassword(secretPass);
-		var BCryptResult = BCrypt.Net.BCrypt.Verify(secretUserPass, Pass);
-		if (!BCryptResult.Equals(true)) { return false; }
-		return true;
-	}
-	public async Task<TokenResult> GetToken(string email,string password)
-	{
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email, password);
-		if(utilisateur is null)
-		{
-			throw new KeyNotFoundException();
-		}
 		await Task.Delay(500);
 		return new TokenResult
 		{
 			Response = true,
-			Token = GenerateJwtToken(utilisateur.Result.Email!)
+			Token = GenerateJwtToken(email)
 		};
 	}
-	public string GetSigningKey()
+	private RsaSecurityKey GetOrCreateSigningKey()
 	{
-		RSA rsa = RSA.Create(2048);
-		RSAParameters privateKey = rsa.ExportParameters(true);
-		RSAParameters publicKey = rsa.ExportParameters(false); // Rotation des clés
+		if (rsaSecurityKey != null)
+			return rsaSecurityKey;
 
-		var rsaSecurityKey = new RsaSecurityKey(rsa);
-		return rsaSecurityKey.ToString();
+		// Génération de la clé RSA
+		using (var rsa = RSA.Create(2048))
+		{
+			// Exporter la clé publique en Base64 pour Vault
+			var publicKey = rsa.ExportRSAPublicKey();
+			string publicKeyPem = Convert.ToBase64String(publicKey);
+			log.LogInformation(publicKeyPem);
+			// Stocker la clé publique dans HashiCorp Vault
+			StorePublicKeyInVault(publicKeyPem);
+			// Exporter la clé privée pour la signature
+			return new RsaSecurityKey(rsa.ExportParameters(true));
+		}
 	}
+	private void StorePublicKeyInVault(string publicKeyPem)
+	{
+		// Configuration du client HashiCorp Vault
+		var hashiCorpToken = configuration["HashiCorp:VaultToken"];
+		var hashiCorpHttpClient = configuration["HashiCorp:HttpClient"];
+		var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
+		var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
+		var vaultClient = new VaultClient(vaultClientSettings);
+
+		// Chemin pour stocker la clé publique dans hashicorp
+		var secretPath = "keys/rsa-public";
+		// Stocker la clé publique
+		vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
+		{
+			{ "key", publicKeyPem }
+		}).Wait();
+
+		log.LogInformation("Clé publique stockée avec succès dans Vault !");
+	}
+
 	public string GenerateJwtToken(string email)
 	{
-		string password= string.Empty;
-		var utilisateur = jwtBearerAuthenticationRepository.GetUserByEmails(email,password);
-		var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
-			Subject = new ClaimsIdentity(new[] {	
-					new Claim(ClaimTypes.Email, utilisateur.Result.Email!),
-					//new Claim(ClaimTypes.Role, utilisateur.Result.Role.ToString()),
+			Subject = new ClaimsIdentity(new[] {
+					new Claim(ClaimTypes.Email,email),
+					new Claim(ClaimTypes.Role, LoginRequest.Privilege.Administrateur.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
 			),
 			Expires = DateTime.UtcNow.AddHours(1),
-			SigningCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha512Signature),
-			Audience = null,
+			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.HmacSha512Signature),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
 		};
-		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500" };
+		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500","https://localhost:7082","https://192.168.153.131:7250"  }; // Notre API et potentiellement le broker MQ
 		tokenDescriptor.Claims = new Dictionary<string, object>
 		{
 			{ JwtRegisteredClaimNames.Aud, additionalAudiences }

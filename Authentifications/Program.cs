@@ -6,7 +6,6 @@ using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -54,7 +53,6 @@ builder.Configuration
 	.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: false, reloadOnChange: false);
 
 builder.Services.AddHttpClient();
-// builder.Services.AddScoped<ApiContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRouting();
 builder.Services.AddHttpContextAccessor();
@@ -74,7 +72,7 @@ builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
 	| Enregistrement de repositories/Services Injectés directement|
 	+----------------------------------------------------+
 */
-builder.Services.AddScoped<JwtBearerAuthenticationRepository>();
+
 builder.Services.AddScoped<JwtBearerAuthenticationService>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
@@ -83,63 +81,6 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
-var redisConfig = builder.Configuration.GetSection("Redis");
-
-// Ajouter IConnectionMultiplexer une seule fois
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig["ConnectionString"]));
-
-// Configurer IDatabase (utilisé pour interagir directement avec Redis)
-builder.Services.AddSingleton<IDatabase>(provider => provider.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-
-// Configurer le cache distribué avec StackExchange.Redis
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConfig["ConnectionString"]; // Utilisation de la chaîne de connexion
-    options.InstanceName = redisConfig["InstanceName"]; // Nom d'instance optionnel
-});
-
-
-builder.Services.AddScoped<RedisCacheService>();
-
-	
-// C'est dans TasksManagementAPI toute cette partie
-
-// builder.Services.AddAuthentication("JwtAuthorization")
-// 	.AddScheme<JwtBearerOptions, JwtBearerAuthorizationServer>("JwtAuthorization", options =>
-// 	{
-// 		var JwtSettings = builder.Configuration.GetSection("JwtSettings");
-// 		var secretKeyLength = int.Parse(JwtSettings["JwtSecretKey"]);
-// 		var randomSecretKey = new RandomUserSecret();
-// 		var signingKey = randomSecretKey.GenerateRandomKey(secretKeyLength);
-
-// 		options.SaveToken = true;
-// 		options.RequireHttpsMetadata = false;
-// 		options.TokenValidationParameters = new TokenValidationParameters
-// 		{
-// 			ValidateIssuer = true,             // Valider l'émetteur (issuer) du jeton
-// 			ValidateAudience = true,           // Valider l'audience du jeton
-// 			ValidateLifetime = true,           // Valider la durée de vie du jeton
-// 			ValidateIssuerSigningKey = true,   // Valider la signature du jeton
-
-// 			ValidIssuer = JwtSettings["Issuer"],       // Émetteur (issuer) valide
-// 			ValidAudience = JwtSettings["Audience"],   // Audience valide
-// 			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)) 
-// 		};
-// 	});
-
-// builder.Services.AddAuthorization(options =>
-//  {
-// 	 // Politique d'autorisation pour les administrateurs
-// 	 options.AddPolicy("AdminPolicy", policy =>
-// 		 policy.RequireRole(nameof(UtilisateurDto.Privilege.Administrateur))
-// 			   .RequireAuthenticatedUser()
-// 			   .AddAuthenticationSchemes("JwtAuthorization"));
- 
-// 	 options.AddPolicy("UserPolicy", policy =>
-// 			   policy.RequireAuthenticatedUser() 
-// 			   .AddAuthenticationSchemes("BasicAuthentication"));
-
-//  });
 var app = builder.Build();
 
 /* 
@@ -147,14 +88,14 @@ var app = builder.Build();
 	| Enregistrement de middlewares Injection directe	 |
 	+----------------------------------------------------+
 */
-//app.UseMiddleware<ContextPathMiddleware>("/lambo-authentification-manager"); // A terme on ne pourra plus accéder au swagger avec /index.html
+app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager"); 
 app.UseMiddleware<ValidationHandlingMiddleware>(); // Le fait de le placer ici avant UseRouting garanti le fait que si la validation n'est pas correct la requete n'atteinge pas le controlleur
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
 	app.UseSwaggerUI(con =>
 	 {
-		 con.SwaggerEndpoint("/swagger/1/swagger.json", "Gestion des authentification");
+		 con.SwaggerEndpoint("/lambo-authentication-manager/swagger/1/swagger.json", "Gestion des authentification");
 
 		 con.RoutePrefix = string.Empty;
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "tQrrc9JOAnWDvcahF6RoWuMynmRzzq6MVD0iQGDUnxB5pG2JXoL45uUZtKwTcj3TDbE+I0nhI12BY0ZY/4kMIA==",
+  "dgSpecHash": "jUC7pUIHzPQSyHpmF5uMr6yyfHCM8kWUrqCOpmJjR7jM6vs0WppMYLmm4b45BmrRf4JuEgOUd5gp5U9ZreNkIQ==",
   "success": true,
   "projectFilePath": "/home/lambo-ubuntu/Authentication/Authentifications/Authentifications.csproj",
   "expectedPackageFiles": [
@@ -14,7 +14,6 @@
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.caching.abstractions/6.0.0/microsoft.extensions.caching.abstractions.6.0.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.caching.memory/6.0.1/microsoft.extensions.caching.memory.6.0.1.nupkg.sha512",
-    "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.caching.stackexchangeredis/6.0.0/microsoft.extensions.caching.stackexchangeredis.6.0.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.configuration/6.0.0/microsoft.extensions.configuration.6.0.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.configuration.abstractions/6.0.0/microsoft.extensions.configuration.abstractions.6.0.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.extensions.configuration.fileextensions/6.0.0/microsoft.extensions.configuration.fileextensions.6.0.0.nupkg.sha512",
@@ -49,7 +48,8 @@
     "/home/lambo-ubuntu/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.security.cryptography.cng/4.5.0/system.security.cryptography.cng.4.5.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.text.encodings.web/6.0.0/system.text.encodings.web.6.0.0.nupkg.sha512",
-    "/home/lambo-ubuntu/.nuget/packages/system.text.json/6.0.0/system.text.json.6.0.0.nupkg.sha512"
+    "/home/lambo-ubuntu/.nuget/packages/system.text.json/6.0.0/system.text.json.6.0.0.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/vaultsharp/1.12.2/vaultsharp.1.12.2.nupkg.sha512"
   ],
   "logs": []
 }
