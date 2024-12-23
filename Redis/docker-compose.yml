@@ -1,28 +1,23 @@
-version: '3.9'
+version: '3.3'
 
 services:
   redis:
     image: redis:latest
     container_name: redis-secure
     ports:
-      - "6379:6379"  # Expose uniquement si nécessaire
+      - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
       - redis_network
     volumes:
       - ./redis-data:/data  # Volume pour persistance des données
-      - ./redis.conf:/usr/local/etc/redis/redis.conf  # Fichier de configuration
-      - ./certs:/certs  # Certificats pour TLS
+      - ./redis.conf:/usr/local/etc/redis/redis.conf  # Fichier de configuration Redis personnalisé
+      - ./certs:/certs  # Dossier des certificats TLS
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD} 
     command: >
-      redis-server /usr/local/etc/redis/redis.conf
-      --requirepass password$1
-      --tls-enabled yes
-      --tls-cert-file /certs/redis.crt
-      --tls-key-file /certs/redis.key
-      --tls-ca-cert-file /certs/ca.crt
-      --save 60 1  
-      --logfile /data/redis.log  
+      redis-server /usr/local/etc/redis/redis.conf 
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "password$1", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
       timeout: 5s
       retries: 3
