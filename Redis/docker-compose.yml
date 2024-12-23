@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis-secure
+    ports:
+      - "6379:6379"  # Expose uniquement si nécessaire
+    networks:
+      - redis_network
+    volumes:
+      - ./redis-data:/data  # Volume pour persistance des données
+      - ./redis.conf:/usr/local/etc/redis/redis.conf  # Fichier de configuration
+      - ./certs:/certs  # Certificats pour TLS
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass password$1
+      --tls-enabled yes
+      --tls-cert-file /certs/redis.crt
+      --tls-key-file /certs/redis.key
+      --tls-ca-cert-file /certs/ca.crt
+      --save 60 1  
+      --logfile /data/redis.log  
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "password$1", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  redis_network:
+    driver: bridge

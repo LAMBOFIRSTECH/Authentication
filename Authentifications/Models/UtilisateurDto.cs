@@ -1,10 +1,21 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 
 namespace Authentifications.Models;
-public class LoginRequest
+public class UtilisateurDto
 {
+
+	/// <summary>
+	/// Représente l'identifiant unique d'un utilisateur.
+	/// </summary>
+	[Key]
+	 [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+	public Guid ID { get; set; }
+	[Required]
+	public string Nom { get; set; } = string.Empty;
+
 	public string? Email { get; set; }
 	public enum Privilege { Administrateur, Utilisateur }
 	[EnumDataType(typeof(Privilege))]
@@ -13,14 +24,14 @@ public class LoginRequest
 	[Required]
 	[Category("Security")]
 	public string? Pass { get; set; }
-	public string SetHashPassword(string password)
-	{
-		if (!string.IsNullOrEmpty(password))
-		{
-			Pass = BCrypt.Net.BCrypt.HashPassword($"{password}");
-		}
-		return Pass!;
-	}
+	// public string SetHashPassword(string password)
+	// {
+	// 	if (!string.IsNullOrEmpty(password))
+	// 	{
+	// 		Pass = BCrypt.Net.BCrypt.HashPassword($"{password}");
+	// 	}
+	// 	return Pass!;
+	// }
 	public bool CheckHashPassword(string password)
 	{
 		return BCrypt.Net.BCrypt.Verify(password, Pass);

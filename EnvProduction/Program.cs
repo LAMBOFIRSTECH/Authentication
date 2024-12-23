@@ -1,13 +1,11 @@
 using System.Reflection;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
-using Authentifications.RedisContext;
 using Authentifications.Repositories;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -83,22 +81,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
-var redisConfig = builder.Configuration.GetSection("Redis");
-
-// Ajouter IConnectionMultiplexer une seule fois
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig["ConnectionString"]));
-
-// Configurer IDatabase (utilisé pour interagir directement avec Redis)
-builder.Services.AddSingleton<IDatabase>(provider => provider.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-
-// Configurer le cache distribué avec StackExchange.Redis
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConfig["ConnectionString"]; // Utilisation de la chaîne de connexion
-    options.InstanceName = redisConfig["InstanceName"]; // Nom d'instance optionnel
-});
-builder.Services.AddScoped<RedisCacheService>();
 var app = builder.Build();
+
 /* 
 	+----------------------------------------------------+
 	| Enregistrement de middlewares Injection directe	 |

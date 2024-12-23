@@ -2,21 +2,25 @@ using Microsoft.AspNetCore.Mvc;
 using Authentifications.Services;
 using System.Text;
 using Authentifications.Models;
+using Authentifications.RedisContext;
+using System.ComponentModel.DataAnnotations;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
 	private readonly JwtBearerAuthenticationService jwtToken;
+	private readonly RedisCacheService redis;
 	private readonly HttpClient _httpClient;
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, JwtBearerAuthenticationService jwtToken, HttpClient httpClient)
+	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, RedisCacheService redis, JwtBearerAuthenticationService jwtToken, HttpClient httpClient)
 	{
 		this.jwtToken = jwtToken;
 		_httpClient = httpClient;
 		this.log = log;
+		this.redis = redis;
 	}
 	[HttpPost("login")]
-	public async Task<ActionResult> Authentificate([FromBody] LoginRequest login)
+	public async Task<ActionResult> Authentificate([EmailAddress] string email, [DataType(DataType.Password)] string password)
 	{
 		if (!ModelState.IsValid)
 		{
@@ -28,7 +32,9 @@ public class AccessTokenController : ControllerBase
 			HttpContext.Items["ModelValidationErrors"] = validationErrors;
 			return StatusCode(415);
 		}
-		string credentials = $"{login.Email}:{login.Pass}";
+		
+		string credentials = $"{email}:{password}";
+		redis.GenerateClientId(credentials);
 
 		// Step 2: Encode the credentials in Base64
 		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
@@ -40,11 +46,18 @@ public class AccessTokenController : ControllerBase
 		var response = await _httpClient.SendAsync(requestMessage);
 		await response.Content.ReadAsStringAsync();
 		log.LogInformation("Authentication successful");
-		var result = await jwtToken.GetToken(login.Email!);
+		var result = await jwtToken.GetToken(email!);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message });
 		}
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
+	}
+
+	[HttpGet("users")]
+	public async Task<ActionResult> Get()
+	{
+		var users = await redis.GetUsersDataAsync();
+		return Ok(users);
 	}
 }

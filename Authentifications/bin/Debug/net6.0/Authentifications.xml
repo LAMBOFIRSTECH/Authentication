@@ -9,5 +9,10 @@
             Gestion du token JWT.
             </summary>
         </member>
+        <member name="P:Authentifications.Models.UtilisateurDto.ID">
+            <summary>
+            Représente l'identifiant unique d'un utilisateur.
+            </summary>
+        </member>
     </members>
 </doc>

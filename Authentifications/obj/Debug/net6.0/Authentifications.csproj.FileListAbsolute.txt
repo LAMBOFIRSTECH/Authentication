@@ -85,3 +85,9 @@
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.genruntimeconfig.cache
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/ref/Authentifications.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/VaultSharp.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.StackExchangeRedis.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Options.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Primitives.dll

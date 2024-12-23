@@ -40,30 +40,30 @@ public class JwtBearerAuthenticationService : IJwtToken
 			string publicKeyPem = Convert.ToBase64String(publicKey);
 			log.LogInformation(publicKeyPem);
 			// Stocker la clé publique dans HashiCorp Vault
-			StorePublicKeyInVault(publicKeyPem);
+			// StorePublicKeyInVault(publicKeyPem);
 			// Exporter la clé privée pour la signature
 			return new RsaSecurityKey(rsa.ExportParameters(true));
 		}
 	}
-	private void StorePublicKeyInVault(string publicKeyPem)
-	{
-		// Configuration du client HashiCorp Vault
-		var hashiCorpToken = configuration["HashiCorp:VaultToken"];
-		var hashiCorpHttpClient = configuration["HashiCorp:HttpClient"];
-		var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
-		var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
-		var vaultClient = new VaultClient(vaultClientSettings);
+	// private void StorePublicKeyInVault(string publicKeyPem)
+	// {
+	// 	// Configuration du client HashiCorp Vault
+	// 	var hashiCorpToken = configuration["HashiCorp:VaultToken"];
+	// 	var hashiCorpHttpClient = configuration["HashiCorp:HttpClient"];
+	// 	var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
+	// 	var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
+	// 	var vaultClient = new VaultClient(vaultClientSettings);
 
-		// Chemin pour stocker la clé publique dans hashicorp
-		var secretPath = "keys/rsa-public";
-		// Stocker la clé publique
-		vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
-		{
-			{ "key", publicKeyPem }
-		}).Wait();
+	// 	// Chemin pour stocker la clé publique dans hashicorp
+	// 	var secretPath = "keys/rsa-public";
+	// 	// Stocker la clé publique
+	// 	vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
+	// 	{
+	// 		{ "key", publicKeyPem }
+	// 	}).Wait();
 
-		log.LogInformation("Clé publique stockée avec succès dans Vault !");
-	}
+	// 	log.LogInformation("Clé publique stockée avec succès dans Vault !");
+	// }
 
 	public string GenerateJwtToken(string email)
 	{
@@ -71,7 +71,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
 			Subject = new ClaimsIdentity(new[] {
-					new Claim(ClaimTypes.Email,email),
+					new Claim(ClaimTypes.Email, email),
 					new Claim(ClaimTypes.Role, LoginRequest.Privilege.Administrateur.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
@@ -80,9 +80,10 @@ public class JwtBearerAuthenticationService : IJwtToken
 			Expires = DateTime.UtcNow.AddHours(1),
 			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.HmacSha512Signature),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
+			Audience = "https://audience1.com" // Primary audience
 		};
-		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500","https://localhost:7082","https://192.168.153.131:7250"  }; // Notre API et potentiellement le broker MQ
-		tokenDescriptor.Claims = new Dictionary<string, object>
+		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500", "https://localhost:7082", "https://192.168.153.131:7250" }; // Notre API et potentiellement le broker MQ
+		tokenDescriptor.AdditionalHeaderClaims = new Dictionary<string, object>
 		{
 			{ JwtRegisteredClaimNames.Aud, additionalAudiences }
 		};
@@ -90,4 +91,23 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
 	}
+	public bool IsTokenExpired(string token)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
+        if (jwtToken == null)
+            return true;
+
+        var expirationDate = jwtToken.ValidTo;
+        return expirationDate < DateTime.UtcNow;
+    }
+
+    public string RefreshToken(string token, string email)
+    {
+        if (IsTokenExpired(token))
+        {
+            return GenerateJwtToken(email);
+        }
+        return token;
+    }
 }
