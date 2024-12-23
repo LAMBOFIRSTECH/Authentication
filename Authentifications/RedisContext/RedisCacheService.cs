@@ -114,6 +114,13 @@ public class RedisCacheService
 	}
 	// public async Task<List<UtilisateurDto>> StoreCredentialsAsync()
 	// {
+	/* Ouvrir la connexion à l'autre microservice et penser à la fermer après avoir récupérer les data 
+		Récupération et désérialisation de la liste des users dans UtilisateurDto
+		Stockage dans redis 
+		Mise à jour du redis cli pour pull le service d'expo des data 
+		Construction du docker-compose pour redis et mise en évidence du data persistance
+	
+	*/
 	// 	var baseUrl = configuration["ApiSettings:BaseUrl"];
 	// 	HttpClient httpClient = CreateHttpClient(baseUrl);
 	// 	HttpResponseMessage response = null;
