@@ -4,7 +4,6 @@ using System.Text.Json;
 using Authentifications.Models;
 using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
-using RedisDatabase = StackExchange.Redis.IDatabase;
 using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
 using System.Net;
@@ -14,28 +13,19 @@ public class RedisCacheService
 {
 	private static readonly Dictionary<int, string> keyCache = new Dictionary<int, string>();
 	private readonly IDistributedCache _cache;
-	private readonly RedisDatabase redisDatabase;
 	private readonly ILogger<RedisCacheService> logger;
 	//private readonly HttpClient httpClient;
 	private readonly string clientID;
 	private readonly IConfiguration configuration;
 
-	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, RedisDatabase redisDatabase)
+	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
 	{
 		_cache = cache;
 		//this.httpClient = httpClient;
 		this.configuration = configuration;
 		this.logger = logger;
-		this.redisDatabase = redisDatabase;
 		clientID = GenerateClientId("");
 	}
-	// public RedisCacheService(IConfiguration configuration, HttpClient httpClient, ILogger<HttpClient> logger)
-	// {
-	// 	this.httpClient = httpClient;
-	// 	this.configuration = configuration;
-	// 	this.logger = logger;
-
-	// }
 	public HttpClient CreateHttpClient(string baseUrl)
 	{
 		try
@@ -67,39 +57,7 @@ public class RedisCacheService
 			logger.LogError(ex, "Erreur lors de la création de l'HttpClient");
 			throw;
 		}
-	}
-	public async Task<List<UtilisateurDto>> GetUsersDataAsync()
-	{
-		var baseUrl = configuration["ApiSettings:BaseUrl"];
-		HttpClient httpClient = CreateHttpClient(baseUrl);
-		HttpResponseMessage response = null;
-		try
-		{
-			var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
-			response = await httpClient.SendAsync(request);
-			response.EnsureSuccessStatusCode();
-			if (response.ReasonPhrase == "No Content")
-			{
-				logger.LogWarning("No data retrieved: the collection is empty.");
-				return new List<UtilisateurDto>();
-			}
-			var content = await response.Content.ReadAsStringAsync();
-			var utilisateurs = JsonConvert.DeserializeObject<List<UtilisateurDto>>(content)!;
-			if (utilisateurs == null)
-			{
-				throw new Exception("Failed to deserialize the response.");
-			}
-			return utilisateurs;
-		}
-		catch (Exception ex)
-		{
-			if (response != null)
-			{
-				logger.LogError("Erreur avec le statut : {Status}", response.StatusCode);
-			}
-			logger.LogError(ex, "Erreur lors de l'appel à l'API");
-			throw;
-		}
+
 	}
 	public string GenerateClientId(string credential)
 	{
@@ -112,68 +70,75 @@ public class RedisCacheService
 			return Convert.ToHexString(hashBytes);
 		}
 	}
-	// public async Task<List<UtilisateurDto>> StoreCredentialsAsync()
-	// {
-	/* Ouvrir la connexion à l'autre microservice et penser à la fermer après avoir récupérer les data 
-		Récupération et désérialisation de la liste des users dans UtilisateurDto
-		Stockage dans redis 
-		Mise à jour du redis cli pour pull le service d'expo des data 
-		Construction du docker-compose pour redis et mise en évidence du data persistance
-	
-	*/
-	// 	var baseUrl = configuration["ApiSettings:BaseUrl"];
-	// 	HttpClient httpClient = CreateHttpClient(baseUrl);
-	// 	HttpResponseMessage response = null;
-	// 	try
-	// 	{
-	// 		// Redis cache key
-	// 		string cacheKey = $"Client:{clientID}";
+	public async Task<string> GetCachedValueAsync(string key)
+	{
+		var value = await _cache.GetStringAsync(key);
+		if (value == null)
+		{
+			//string cacheKey = $"Client:{clientID}";
+			value = GenerateClientId(key);
+			await _cache.SetStringAsync(key, value, new DistributedCacheEntryOptions
+			{
+				AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+			});
+		}
+		return value;
+	}
+	public async Task<List<UtilisateurDto>> StoreCredentialsAsync()
+	{
+		var baseUrl = configuration["ApiSettings:BaseUrl"];
+		HttpClient httpClient = CreateHttpClient(baseUrl);
+		HttpResponseMessage response = null;
+		try
+		{
+			// string cacheKey = $"Client:{clientID}";
+			string cacheKey = $"Client";
+			var cachedData = await _cache.GetStringAsync(cacheKey);
 
-	// 		// Vérifier si les données sont déjà dans Redis
-	// 		var cachedData = await redisDatabase.StringGetAsync(cacheKey);
-	// 		if (!cachedData.IsNullOrEmpty)
-	// 		{
-	// 			logger.LogInformation("Données récupérées depuis Redis pour la clé : {CacheKey}", cacheKey);
-	// 			return JsonConvert.DeserializeObject<List<UtilisateurDto>>(cachedData)!;
-	// 		}
+			if (cachedData is not null)
+			{
+				logger.LogInformation("Données récupérées depuis Redis pour la clé : {CacheKey}", cacheKey);
+				return JsonConvert.DeserializeObject<List<UtilisateurDto>>(cachedData!)!;
+			}
+			var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
+			response = await httpClient.SendAsync(request);
+			response.EnsureSuccessStatusCode();
 
-	// 		// Effectuer l'appel API si les données ne sont pas en cache
-	// 		var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
-	// 		response = await httpClient.SendAsync(request);
-	// 		response.EnsureSuccessStatusCode();
+			if (response.ReasonPhrase == "No Content")
+			{
+				logger.LogWarning("No data retrieved: the collection is empty.");
+				return new List<UtilisateurDto>();
+			}
 
-	// 		if (response.ReasonPhrase == "No Content")
-	// 		{
-	// 			logger.LogWarning("No data retrieved: the collection is empty.");
-	// 			return new List<UtilisateurDto>();
-	// 		}
+			// Récupérer les données
+			var content = await response.Content.ReadAsStringAsync();
+			var utilisateurs = JsonConvert.DeserializeObject<List<UtilisateurDto>>(content)!;
+			if (utilisateurs == null)
+			{
+				throw new Exception("Failed to deserialize the response.");
+			}
 
-	// 		// Récupérer les données
-	// 		var content = await response.Content.ReadAsStringAsync();
-	// 		var utilisateurs = JsonConvert.DeserializeObject<List<UtilisateurDto>>(content)!;
-	// 		if (utilisateurs == null)
-	// 		{
-	// 			throw new Exception("Failed to deserialize the response.");
-	// 		}
+			// Sérialiser et stocker les données dans Redis
+			var serializedData = JsonConvert.SerializeObject(utilisateurs);
+			await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
+			{
+				AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+			});
 
-	// 		// Sérialiser et stocker les données dans Redis
-	// 		var serializedData = JsonConvert.SerializeObject(utilisateurs);
-	// 		await redisDatabase.StringSetAsync(cacheKey, serializedData, TimeSpan.FromHours(1));
+			logger.LogInformation("Données mises en cache dans Redis pour la clé : {CacheKey}", cacheKey);
 
-	// 		logger.LogInformation("Données mises en cache dans Redis pour la clé : {CacheKey}", cacheKey);
-
-	// 		return utilisateurs;
-	// 	}
-	// 	catch (Exception ex)
-	// 	{
-	// 		if (response != null)
-	// 		{
-	// 			logger.LogError("Erreur avec le statut : {Status}", response.StatusCode);
-	// 		}
-	// 		logger.LogError(ex, "Erreur lors de l'appel à l'API");
-	// 		throw;
-	// 	}
-	// }
+			return utilisateurs;
+		}
+		catch (Exception ex)
+		{
+			if (response != null)
+			{
+				logger.LogError("Erreur avec le statut : {Status}", response.StatusCode);
+			}
+			logger.LogError(ex, "Erreur lors de l'appel à l'API");
+			throw;
+		}
+	}
 
 
 	// public async Task<bool> StoreCredentialsAsync(string clientID, string email, string password)
@@ -244,4 +209,6 @@ public class RedisCacheService
 	// 		return null;
 	// 	}
 	// }
+
+
 }

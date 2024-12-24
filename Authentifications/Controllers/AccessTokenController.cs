@@ -34,7 +34,7 @@ public class AccessTokenController : ControllerBase
 		}
 		
 		string credentials = $"{email}:{password}";
-		redis.GenerateClientId(credentials);
+		await redis.GetCachedValueAsync(credentials);
 
 		// Step 2: Encode the credentials in Base64
 		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
@@ -57,7 +57,7 @@ public class AccessTokenController : ControllerBase
 	[HttpGet("users")]
 	public async Task<ActionResult> Get()
 	{
-		var users = await redis.GetUsersDataAsync();
+		var users = await redis.StoreCredentialsAsync();
 		return Ok(users);
 	}
 }

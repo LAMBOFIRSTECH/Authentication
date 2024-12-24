@@ -1,4 +1,7 @@
+using System.Net.Security;
 using System.Reflection;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
 using Authentifications.RedisContext;
@@ -12,7 +15,7 @@ using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-// Conteneur d'enregistrement de dépendances-------------------------------- 
+// Conteneur d'enregistrement de dépendances -------------------------------- 
 
 builder.Services.AddControllers();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -61,7 +64,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection();
 builder.Services.AddHealthChecks();
 
-
 /*
 	+----------------------------------------------------------------------+
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
@@ -84,19 +86,67 @@ builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
 var redisConfig = builder.Configuration.GetSection("Redis");
-
-// Ajouter IConnectionMultiplexer une seule fois
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig["ConnectionString"]));
-
-// Configurer IDatabase (utilisé pour interagir directement avec Redis)
-builder.Services.AddSingleton<IDatabase>(provider => provider.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-
-// Configurer le cache distribué avec StackExchange.Redis
-builder.Services.AddStackExchangeRedisCache(options =>
+var clientCertificate = new X509Certificate2(
+	redisConfig["Certificate:Redis-pfx"],
+	redisConfig["Certificate:Pfx-password"], 
+	X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.MachineKeySet
+);
+var options = new ConfigurationOptions
 {
-    options.Configuration = redisConfig["ConnectionString"]; // Utilisation de la chaîne de connexion
-    options.InstanceName = redisConfig["InstanceName"]; // Nom d'instance optionnel
+	//EndPoints = {"localhost:6379"},
+	EndPoints = { redisConfig["ConnectionString"] },
+	Ssl = true,
+	SslHost = "Redis-Server", // Nom d'hôte TLS (C'est le common name du certificat pour le server redis pas pour le client)
+	Password = redisConfig["Password"], // Mot de passe Redis
+	AbortOnConnectFail = false,
+	SslProtocols = SslProtocols.Tls13, // Vérifier la version tls de redis en amont
+	AllowAdmin = true,
+	ConnectTimeout = 10000, // Augmenter le délai de connexion
+	SyncTimeout = 10000,
+	ReconnectRetryPolicy = new ExponentialRetry(5000)
+};
+// On charge le CA
+var caCertificate = new X509Certificate2(redisConfig["Certificate:Redis-ca"]);
+// Ajouter le certificat CA à la validation
+options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
+{
+	if (sslPolicyErrors == SslPolicyErrors.None)
+        return true;
+
+    // Accepter uniquement les erreurs liées à une CA auto-signée
+    if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
+    {
+        // Vérifiez si le certificat racine est Redis-CA
+        var rootCert = chain.ChainElements[^1].Certificate;
+        return rootCert.Subject == "CN=Redis-CA";
+    }
+
+    return false;
+};
+
+// Spécifier le certificat client
+options.CertificateSelection += delegate { return clientCertificate; };
+// Configurer le cache distribué avec StackExchange.Redis
+builder.Services.AddStackExchangeRedisCache(opts =>
+{
+	opts.ConfigurationOptions = options;
+	
 });
+// Ajouter IConnectionMultiplexer une seule fois
+builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+{
+	try
+	{
+		var multiplexer = ConnectionMultiplexer.Connect(options);
+		return multiplexer;
+	}
+	catch (Exception ex)
+	{
+		Console.WriteLine("Error connecting to Redis: {0}", ex.Message);
+		throw;
+	};
+});
+
 builder.Services.AddScoped<RedisCacheService>();
 var app = builder.Build();
 /* 
@@ -104,8 +154,8 @@ var app = builder.Build();
 	| Enregistrement de middlewares Injection directe	 |
 	+----------------------------------------------------+
 */
-app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager"); 
-app.UseMiddleware<ValidationHandlingMiddleware>(); // Le fait de le placer ici avant UseRouting garanti le fait que si la validation n'est pas correct la requete n'atteinge pas le controlleur
+app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager");
+app.UseMiddleware<ValidationHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();

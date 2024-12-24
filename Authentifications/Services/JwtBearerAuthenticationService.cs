@@ -38,7 +38,6 @@ public class JwtBearerAuthenticationService : IJwtToken
 			// Exporter la clé publique en Base64 pour Vault
 			var publicKey = rsa.ExportRSAPublicKey();
 			string publicKeyPem = Convert.ToBase64String(publicKey);
-			log.LogInformation(publicKeyPem);
 			// Stocker la clé publique dans HashiCorp Vault
 			// StorePublicKeyInVault(publicKeyPem);
 			// Exporter la clé privée pour la signature
