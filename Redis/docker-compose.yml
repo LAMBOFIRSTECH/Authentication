@@ -7,11 +7,12 @@ services:
     ports:
       - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
-      - redis_network
+      - redis
     volumes:
       - ./redis-data:/data  # Volume pour persistance des données
       - ./redis.conf:/usr/local/etc/redis/redis.conf  # Fichier de configuration Redis personnalisé
       - ./certs:/certs  # Dossier des certificats TLS
+      - /etc/localtime:/etc/localtime:ro  # Synchronisation de l'heure du conteneur avec l'hôte
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD} 
     command: >
@@ -19,9 +20,9 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
-      timeout: 5s
+      timeout: 30s
       retries: 3
 
 networks:
-  redis_network:
+  redis:
     driver: bridge

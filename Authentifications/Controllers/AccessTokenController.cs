@@ -57,7 +57,8 @@ public class AccessTokenController : ControllerBase
 	[HttpGet("users")]
 	public async Task<ActionResult> Get()
 	{
-		var users = await redis.StoreCredentialsAsync();
+		// 	string credentials = $"{email}:{password}";
+		var users = await redis.StoreCredentialsAsync(); //credentials
 		return Ok(users);
 	}
 }
