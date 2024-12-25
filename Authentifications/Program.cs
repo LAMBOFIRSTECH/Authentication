@@ -96,7 +96,6 @@ var clientCertificate = new X509Certificate2(
 );
 var options = new ConfigurationOptions
 {
-	//EndPoints = {"localhost:6379"},
 	EndPoints = { redisConfig["ConnectionString"] },
 	Ssl = true,
 	SslHost = "Redis-Server", // Nom d'hôte TLS (C'est le common name du certificat pour le server redis pas pour le client)
@@ -113,18 +112,18 @@ var caCertificate = new X509Certificate2(redisConfig["Certificate:Redis-ca"]);
 // Ajouter le certificat CA à la validation
 options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
 {
+	if (sslPolicyErrors == SslPolicyErrors.None)
 	return true;
-	// if (sslPolicyErrors == SslPolicyErrors.None)
 
-	// // Accepter uniquement les erreurs liées à une CA auto-signée
-	// if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
-	// {
-	// 	// Vérifiez si le certificat racine est Redis-CA
-	// 	var rootCert = chain.ChainElements[^1].Certificate;
-	// 	return rootCert.Subject == "CN=Redis-CA";
-	// }
+	// Accepter uniquement les erreurs liées à une CA auto-signée
+	if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
+	{
+		// Vérifiez si le certificat racine est Redis-CA
+		var rootCert = chain.ChainElements[^1].Certificate;
+		return rootCert.Subject == "CN=Redis-CA";
+	}
 
-	// return false;
+	return false;
 };
 
 // Spécifier le certificat client

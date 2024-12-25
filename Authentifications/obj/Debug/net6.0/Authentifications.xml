@@ -6,7 +6,7 @@
     <members>
         <member name="T:Authentifications.Models.TokenResult">
             <summary>
-            Gestion du token JWT.
+            Gestion de la reponse du token JWT.
             </summary>
         </member>
         <member name="P:Authentifications.Models.UtilisateurDto.ID">

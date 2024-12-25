@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Authentifications.Services;
 using System.Text;
-using Authentifications.Models;
 using Authentifications.RedisContext;
 using System.ComponentModel.DataAnnotations;
 namespace Authentifications.Controllers;
@@ -45,6 +44,7 @@ public class AccessTokenController : ControllerBase
 		};
 		var response = await _httpClient.SendAsync(requestMessage);
 		await response.Content.ReadAsStringAsync();
+		await redis.GetDataFromRedisByFilterAsync(email,password); 
 		log.LogInformation("Authentication successful");
 		var result = await jwtToken.GetToken(email!);
 		if (!result.Response)
@@ -59,7 +59,16 @@ public class AccessTokenController : ControllerBase
 	{
 		string email = "lambo@example.com";
 		string password = "lambo";
-		await redis.GenerateAsyncDataByFilter(email,password); //credentials
+		var result=await redis.GetDataFromRedisByFilterAsync(email,password); //credentials
+		if(result is false)
+		{
+			log.LogError($"Not found email {email}");
+			return NotFound();
+		}
 		return Ok("user found");
 	}
 }
+
+   
+
+

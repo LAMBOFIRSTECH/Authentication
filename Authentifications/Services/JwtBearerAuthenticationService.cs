@@ -71,7 +71,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 		{
 			Subject = new ClaimsIdentity(new[] {
 					new Claim(ClaimTypes.Email, email),
-					new Claim(ClaimTypes.Role, LoginRequest.Privilege.Administrateur.ToString()),
+					new Claim(ClaimTypes.Role, UtilisateurDto.Privilege.Administrateur.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}

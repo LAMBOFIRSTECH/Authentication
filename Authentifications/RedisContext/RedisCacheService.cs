@@ -4,6 +4,10 @@ using Authentifications.Models;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
+using StackExchange.Redis;
+using System.Net.Http.Headers;
+using System.Net;
+using System.Net.Sockets;
 namespace Authentifications.RedisContext;
 
 public class RedisCacheService
@@ -12,12 +16,18 @@ public class RedisCacheService
 	private readonly IDistributedCache _cache;
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
+	private readonly IConnectionMultiplexer redisConnection;
+	private readonly ISubscriber redisSubscriber;
 
-	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
+
+	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, IConnectionMultiplexer redisConnection)
 	{
 		_cache = cache;
 		this.configuration = configuration;
 		this.logger = logger;
+		// Connexion Redis pour Pub/Sub
+		this.redisConnection = redisConnection;
+		redisSubscriber = redisConnection.GetSubscriber();
 	}
 	public HttpClient CreateHttpClient(string baseUrl)
 	{
@@ -52,9 +62,11 @@ public class RedisCacheService
 		}
 
 	}
-	public string GenerateClientId(string email, string password)
+	public string GenerateRedisKey()
 	{
 		string salt = "RandomUniqueSalt";
+		string email = "example@example.com";
+		string password = "password$1";
 		using (SHA256 sha256 = SHA256.Create())
 		{
 			string combined = $"{email}:{password}:{salt}";
@@ -63,71 +75,95 @@ public class RedisCacheService
 			return Convert.ToHexString(hashBytes);
 		}
 	}
+	public void ListenForRedisKeyEvents()
+	{
+		// Souscrire au canal "sadd" pour écouter les ajouts dans un SET
+		redisSubscriber.Subscribe(new RedisChannel("__keyevent@0__:sadd", RedisChannel.PatternMode.Literal), async (channel, message) =>
+		{
+			logger.LogInformation("Nouvel élément ajouté à la clé : {CacheKey}", message);
 
-	public async Task<ICollection<UtilisateurDto>> StoreCredentialsAsync(string email, string password)
+			// // Quand un élément est ajouté dans Redis, récupérez les données
+			// var cachedData = await _cache.GetStringAsync(message);
+
+			// if (!string.IsNullOrEmpty(cachedData))
+			// {
+			// 	// Désérialiser les données et traiter les utilisateurs
+			// 	var utilisateurs = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData);
+			// 	logger.LogInformation("Données mises à jour pour la clé : {CacheKey}", message);
+			// 	// Vous pouvez traiter les utilisateurs ici selon vos besoins
+			// }
+		});
+
+		logger.LogInformation("Écoute des événements Redis Pub/Sub activée pour les ajouts (SADD).");
+	}
+	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyOrFromExternalServiceAndStoreInRedisAsync(string email, string password)
 	{
 		var baseUrl = configuration["ApiSettings:BaseUrl"];
-		HttpClient httpClient = CreateHttpClient(baseUrl);
+		HttpClient httpClient = null;
 		HttpResponseMessage response = null;
+
+		// Créer une instance de HttpClient
+		httpClient = CreateHttpClient(baseUrl);
+		string cacheKey = GenerateRedisKey();
+
+		// Vérifier d'abord si les données sont présentes dans le cache Redis
+		var cachedData = await _cache.GetStringAsync(cacheKey);
+		if (cachedData is not null)
+		{
+			logger.LogInformation("Données récupérées depuis Redis pour la clé : {CacheKey}", cacheKey);
+			ListenForRedisKeyEvents();
+			return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
+		}
 		try
 		{
-			string cacheKey = GenerateClientId(email, password);
-			var cachedData = await _cache.GetStringAsync(cacheKey);
-
-			if (cachedData is not null)
-			{
-				logger.LogInformation("Données récupérées depuis Redis pour la clé : {CacheKey}", cacheKey);
-				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData!)!;
-			}
 			var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
 			response = await httpClient.SendAsync(request);
-			response.EnsureSuccessStatusCode();
-
-			if (response.ReasonPhrase == "No Content")
-			{
-				logger.LogWarning("No data retrieved: the collection is empty.");
-				return new HashSet<UtilisateurDto>();
-			}
-
-			// Récupérer les données
+			response.EnsureSuccessStatusCode(); // Lui meme il lève l'exception
 			var content = await response.Content.ReadAsStringAsync();
 			var utilisateurs = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(content)!;
 			if (utilisateurs == null)
 			{
-				throw new Exception("Failed to deserialize the response.");
+				throw new Exception("Failed to deserialize the response. Empty data retrieve from data source");
 			}
-			/* Fermer la connexion http au service lambo-tasks-management 
-				Quand on ferme le service redis ne reconnait plus le cache
-			*/
-
-			// Sérialiser et stocker les données dans Redis
+			// Sérialiser et stocker les données dans Redis pour les futures requêtes
 			var serializedData = JsonConvert.SerializeObject(utilisateurs);
 			await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
 			{
-				AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+				AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
 			});
+
 			logger.LogInformation("Données mises en cache dans Redis pour la clé : {CacheKey}", cacheKey);
-			var users = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(serializedData);
-			logger.LogInformation("Données : {serializedData}", serializedData);
-			return users!;
+			return utilisateurs;
+		}
+		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
+		{
+			// Gérer l'erreur de connexion réseau (service down, connexion refusée, etc.)
+			logger.LogError($"Socket's problems check if TasksManagement service is UP: {socketEx.Message}");
+			throw new Exception("The service in Unavailable.  Please retry soon.", ex);
+		}
+		catch (HttpRequestException ex)
+		{
+			logger.LogError($"{ex}");
+			throw new Exception("Problème de communication avec l'API.", ex);
 		}
 		catch (Exception ex)
 		{
-			if (response != null)
-			{
-				logger.LogError("Erreur avec le statut : {Status}", response.StatusCode);
-			}
-			logger.LogError(ex, "Erreur lors de l'appel à l'API");
-			throw;
+			logger.LogError($"{ex}");
+			throw new Exception("Data source service has been correctly called. However some troubles have been detected!", ex);
+		}
+		finally
+		{
+			response?.Dispose(); // Libère les ressources liées à HttpResponseMessage
+			httpClient?.Dispose(); // Libère les ressources liées à HttpClient
 		}
 	}
-	public async Task<bool> GenerateAsyncDataByFilter(string email, string password)
+	public async Task<bool> GetDataFromRedisByFilterAsync(string email, string password)
 	{
-		bool find=false;
-		var utilisateurs = await StoreCredentialsAsync(email, password);
+		bool find = false;
+		var utilisateurs = await RetrieveData_OnRedisUsingKeyOrFromExternalServiceAndStoreInRedisAsync(email, password);
 		foreach (var user in utilisateurs)
 		{
-			var result= user.CheckHashPassword(password);
+			var result = user.CheckHashPassword(password);
 			if (result.Equals(true) && user.Email!.Equals(email))
 			{
 				find = true;
@@ -136,4 +172,5 @@ public class RedisCacheService
 		}
 		return find;
 	}
+
 }
