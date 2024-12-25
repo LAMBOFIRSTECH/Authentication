@@ -11,7 +11,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	public AuthentificationBasicService(  JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	public AuthentificationBasicService(JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
 	ISystemClock clock, ILogger<JwtBearerAuthenticationService> log)
@@ -20,6 +20,8 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.log = log;
 	}
+	// public async Task<AuthenticateResult> AuthenticateAsync()
+	// { }
 
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{

@@ -63,6 +63,9 @@ builder.Services.AddRouting();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection();
 builder.Services.AddHealthChecks();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
 
 /*
 	+----------------------------------------------------------------------+
@@ -99,7 +102,7 @@ var options = new ConfigurationOptions
 	SslHost = "Redis-Server", // Nom d'hôte TLS (C'est le common name du certificat pour le server redis pas pour le client)
 	Password = redisConfig["Password"], // Mot de passe Redis
 	AbortOnConnectFail = false,
-	SslProtocols = SslProtocols.Tls13, // Vérifier la version tls de redis en amont
+	SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, // Vérifier la version tls de redis en amont
 	AllowAdmin = true,
 	ConnectTimeout = 10000, // Augmenter le délai de connexion
 	SyncTimeout = 10000,
@@ -110,18 +113,18 @@ var caCertificate = new X509Certificate2(redisConfig["Certificate:Redis-ca"]);
 // Ajouter le certificat CA à la validation
 options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
 {
-	if (sslPolicyErrors == SslPolicyErrors.None)
-        return true;
+	return true;
+	// if (sslPolicyErrors == SslPolicyErrors.None)
 
-    // Accepter uniquement les erreurs liées à une CA auto-signée
-    if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
-    {
-        // Vérifiez si le certificat racine est Redis-CA
-        var rootCert = chain.ChainElements[^1].Certificate;
-        return rootCert.Subject == "CN=Redis-CA";
-    }
+	// // Accepter uniquement les erreurs liées à une CA auto-signée
+	// if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
+	// {
+	// 	// Vérifiez si le certificat racine est Redis-CA
+	// 	var rootCert = chain.ChainElements[^1].Certificate;
+	// 	return rootCert.Subject == "CN=Redis-CA";
+	// }
 
-    return false;
+	// return false;
 };
 
 // Spécifier le certificat client
