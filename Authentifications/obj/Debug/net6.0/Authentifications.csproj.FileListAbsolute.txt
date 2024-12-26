@@ -51,8 +51,14 @@
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.EntityFrameworkCore.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.EntityFrameworkCore.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.Abstractions.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.Memory.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.StackExchangeRedis.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Options.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Primitives.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.IdentityModel.JsonWebTokens.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.IdentityModel.Logging.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.IdentityModel.Protocols.dll
@@ -67,6 +73,7 @@
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Swashbuckle.AspNetCore.SwaggerUI.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/System.Diagnostics.DiagnosticSource.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/System.IdentityModel.Tokens.Jwt.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/VaultSharp.dll
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.csproj.AssemblyReference.cache
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.GeneratedMSBuildEditorConfig.editorconfig
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.AssemblyInfoInputs.cache
@@ -84,10 +91,3 @@
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.pdb
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/Authentifications.genruntimeconfig.cache
 /home/lambo-ubuntu/Authentication/Authentifications/obj/Debug/net6.0/ref/Authentifications.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/VaultSharp.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.Abstractions.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Caching.StackExchangeRedis.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Logging.Abstractions.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Options.dll
-/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Microsoft.Extensions.Primitives.dll

@@ -3,20 +3,21 @@ using Authentifications.Services;
 using System.Text;
 using Authentifications.RedisContext;
 using System.ComponentModel.DataAnnotations;
+using Authentifications.Interfaces;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
 {
 	private readonly JwtBearerAuthenticationService jwtToken;
-	private readonly RedisCacheService redis;
+	private readonly IRedisCacheService redisCache;
 	private readonly HttpClient _httpClient;
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, RedisCacheService redis, JwtBearerAuthenticationService jwtToken, HttpClient httpClient)
+	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, IRedisCacheService redisCache, JwtBearerAuthenticationService jwtToken, HttpClient httpClient)
 	{
 		this.jwtToken = jwtToken;
 		_httpClient = httpClient;
 		this.log = log;
-		this.redis = redis;
+		this.redisCache = redisCache;
 	}
 	[HttpPost("login")]
 	public async Task<ActionResult> Authentificate([EmailAddress] string email, [DataType(DataType.Password)] string password)
@@ -33,7 +34,6 @@ public class AccessTokenController : ControllerBase
 		}
 		
 		string credentials = $"{email}:{password}";
-		//await redis.GetCachedValueAsync(credentials);
 
 		// Step 2: Encode the credentials in Base64
 		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
@@ -44,7 +44,9 @@ public class AccessTokenController : ControllerBase
 		};
 		var response = await _httpClient.SendAsync(requestMessage);
 		await response.Content.ReadAsStringAsync();
-		await redis.GetDataFromRedisByFilterAsync(email,password); 
+		
+		await redisCache.GetDataFromRedisByFilterAsync(email,password); 
+		
 		log.LogInformation("Authentication successful");
 		var result = await jwtToken.GetToken(email!);
 		if (!result.Response)
@@ -59,16 +61,12 @@ public class AccessTokenController : ControllerBase
 	{
 		string email = "lambo@example.com";
 		string password = "lambo";
-		var result=await redis.GetDataFromRedisByFilterAsync(email,password); //credentials
+		var result=await redisCache.GetDataFromRedisByFilterAsync(email,password);
 		if(result is false)
 		{
 			log.LogError($"Not found email {email}");
-			return NotFound();
+			return NotFound($"Not found email {email}");
 		}
 		return Ok("user found");
 	}
 }
-
-   
-
-

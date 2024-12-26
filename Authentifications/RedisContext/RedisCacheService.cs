@@ -8,16 +8,21 @@ using StackExchange.Redis;
 using System.Net.Http.Headers;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Http;
+using Authentifications.Interfaces;
 namespace Authentifications.RedisContext;
 
-public class RedisCacheService
+public class RedisCacheService : IRedisCacheService
 {
-	private static readonly Dictionary<int, string> keyCache = new Dictionary<int, string>();
 	private readonly IDistributedCache _cache;
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
 	private readonly IConnectionMultiplexer redisConnection;
 	private readonly ISubscriber redisSubscriber;
+	private readonly HttpClient httpClient = null;
+	private readonly HttpResponseMessage response = null; //Plustard
+	private readonly string baseUrl = string.Empty;
+	private readonly string cacheKey = string.Empty;
 
 
 	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, IConnectionMultiplexer redisConnection)
@@ -28,6 +33,10 @@ public class RedisCacheService
 		// Connexion Redis pour Pub/Sub
 		this.redisConnection = redisConnection;
 		redisSubscriber = redisConnection.GetSubscriber();
+		baseUrl = configuration["ApiSettings:BaseUrl"];
+		httpClient = CreateHttpClient(baseUrl);
+		cacheKey = GenerateRedisKey();
+
 	}
 	public HttpClient CreateHttpClient(string baseUrl)
 	{
@@ -75,6 +84,129 @@ public class RedisCacheService
 			return Convert.ToHexString(hashBytes);
 		}
 	}
+
+	public async Task<bool> GetDataFromRedisByFilterAsync(string email, string password)
+	{
+		bool find = false;
+		var utilisateurs = await RetrieveData_OnRedisUsingKeyOrFromExternalApiAndStoreInRedisAsync();
+		foreach (var user in utilisateurs)
+		{
+			var result = user.CheckHashPassword(password);
+			if (result.Equals(true) && user.Email!.Equals(email))
+			{
+				find = true;
+				break;
+			}
+		}
+		return find;
+	}
+	public async Task<ICollection<UtilisateurDto>> RetrieveDataFromExternalApiAsync(HttpClient httpClient, HttpResponseMessage response)
+	{
+		try
+		{
+			using (var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users"))
+			using (response = await httpClient.SendAsync(request))
+			{
+				response.EnsureSuccessStatusCode();
+				var content = await response.Content.ReadAsStringAsync();
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(content)!;
+			}
+		}
+		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
+		{
+			logger.LogError($"Socket's problems check if TasksManagement service is UP: {socketEx.Message}");
+			throw new Exception("The service is unavailable. Please retry soon.", ex);
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Unexpected error while calling the API.");
+			throw;
+		}
+	}
+	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyOrFromExternalApiAndStoreInRedisAsync()
+	{
+
+		// Vérifier d'abord si les données sont présentes dans le cache Redis
+		var cachedData = await _cache.GetStringAsync(cacheKey);
+		if (cachedData is not null)
+		{
+			try
+			{
+				var result = await ValidateAndSyncDataAsync(cachedData);
+				if (result is not null)
+				{
+					logger.LogInformation("Données synchronisées avec succès.");
+					return result;
+				}
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
+			}
+			catch (Exception ex)
+			{
+				logger.LogCritical("Failed to Validate data between Redis and External API Service. Erreur : {Message}", ex.Message);
+				logger.LogWarning("Utilisation des données de Redis.");
+				
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
+			}
+		}
+
+		logger.LogInformation("Aucune données présentes dans le cache Redis.");
+
+		var utilisateurs = await RetrieveDataFromExternalApiAsync(httpClient, response);
+		if (utilisateurs == null || !utilisateurs.Any())
+		{
+			throw new Exception("Failed to deserialize the response. Empty data retrieve from data source"); // C'est dans la validation
+		}
+		// Sérialiser et stocker les données dans Redis pour les futures requêtes
+		await UpdateRedisCacheWithExternalApiData(utilisateurs);
+		return utilisateurs;
+	}
+	public async Task<ICollection<UtilisateurDto>> ValidateAndSyncDataAsync(string cachedData)
+	{
+		try
+		{
+			var externalApiData = (await RetrieveDataFromExternalApiAsync(httpClient, response)).ToHashSet();
+
+			if (externalApiData == null || !externalApiData.Any())
+			{
+				logger.LogWarning("L'API externe a retourné des données vides. Validation impossible.");
+				return null;
+			}
+			var redisData = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
+
+			if (!redisData!.SetEquals(externalApiData))
+			{
+				logger.LogInformation("Synchronisation des données.........");
+
+				// Synchroniser les données Redis avec celles de l'API
+				await UpdateRedisCacheWithExternalApiData(externalApiData);
+				return externalApiData;
+			}
+
+			logger.LogInformation("Les données Redis sont identiques à celles de l'API. Utilisation des données de Redis.");
+			return redisData;
+		}
+		catch (HttpRequestException ex) when (ex.InnerException is SocketException)
+		{
+			logger.LogWarning("Impossible de valider les données avec l'API externe. L'API est inaccessible.");
+			return null; // Retourner null si l'API est down	
+		}
+		// catch (Exception ex)
+		// {
+		// 	logger.LogError("Une erreur s'est produite lors de la validation des données : {Message}", ex.Message);
+		// 	throw;
+		// }
+	}
+	private async Task UpdateRedisCacheWithExternalApiData(ICollection<UtilisateurDto> externalApiData)
+	{
+		// Sérialiser et stocker les données dans Redis
+		var serializedData = JsonConvert.SerializeObject(externalApiData);
+		await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
+		{
+			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+		});
+
+		logger.LogInformation("Redis mis à jour avec les données de l'API pour la clé : {CacheKey}", cacheKey);
+	}
 	public void ListenForRedisKeyEvents(string cacheKey)
 	{
 		// Souscrire au canal "sadd" pour écouter les ajouts dans un SET
@@ -99,130 +231,6 @@ public class RedisCacheService
 		});
 
 		logger.LogInformation("Écoute des événements Redis Pub/Sub activée pour les ajouts (SADD).");
-	}
-	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyOrFromExternalServiceAndStoreInRedisAsync()
-	{
-		var baseUrl = configuration["ApiSettings:BaseUrl"];
-		HttpClient httpClient = null;
-		HttpResponseMessage response = null;
-		string cacheKey = null;
-
-		httpClient = CreateHttpClient(baseUrl);
-		if (cacheKey is not null)
-		{
-			ListenForRedisKeyEvents(cacheKey); // On pourra se passer de ça si on veut pas écouter les événements
-		}
-		cacheKey = GenerateRedisKey();
-
-		// Vérifier d'abord si les données sont présentes dans le cache Redis
-		var cachedData = await _cache.GetStringAsync(cacheKey);
-		if (cachedData is not null)
-		{
-			logger.LogInformation("Données récupérées depuis Redis pour la clé : {CacheKey}", cacheKey);
-			//ListenForRedisKeyEvents(cacheKey);
-			return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
-		}
-		try
-		{
-			var request = new HttpRequestMessage(HttpMethod.Get, "/lambo-tasks-management/api/v1/users");
-			response = await httpClient.SendAsync(request);
-			response.EnsureSuccessStatusCode(); // Lui meme il lève l'exception
-			var content = await response.Content.ReadAsStringAsync();
-			var utilisateurs = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(content)!;
-			if (utilisateurs == null)
-			{
-				throw new Exception("Failed to deserialize the response. Empty data retrieve from data source");
-			}
-			/* C'est ici qu'on compare les data
-			 entre source et redis
-			*/
-			var result = await ValidateAndSyncDataAsync(utilisateurs); //var utilisateurs = await ValidateAndSyncDataAsync(utilisateurs);
-																	   // if (result is false)
-																	   // {
-																	   // 	throw new Exception("Data source and Redis data are not synchronized"); On gère cette logique en bas dans la fonction
-																	   // } 
-
-			// Sérialiser et stocker les données dans Redis pour les futures requêtes
-			var serializedData = JsonConvert.SerializeObject(utilisateurs);
-			await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
-			{
-				AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
-			});
-
-			logger.LogInformation("Données mises en cache dans Redis pour la clé : {CacheKey}", cacheKey);
-			return utilisateurs;
-		}
-		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
-		{
-			// Gérer l'erreur de connexion réseau (service down, connexion refusée, etc.)
-			logger.LogError($"Socket's problems check if TasksManagement service is UP: {socketEx.Message}");
-			throw new Exception("The service in Unavailable.  Please retry soon.", ex);
-		}
-		catch (HttpRequestException ex)
-		{
-			logger.LogError($"{ex}");
-			throw new Exception("Problème de communication avec l'API.", ex);
-		}
-		catch (Exception ex)
-		{
-			logger.LogError($"{ex}");
-			throw new Exception("Data source service has been correctly called. However some troubles have been detected!", ex);
-		}
-		finally
-		{
-			response?.Dispose(); // Libère les ressources liées à HttpResponseMessage
-			httpClient?.Dispose(); // Libère les ressources liées à HttpClient
-		}
-	}
-	public async Task<bool> GetDataFromRedisByFilterAsync(string email, string password)
-	{
-		bool find = false;
-		var utilisateurs = await RetrieveData_OnRedisUsingKeyOrFromExternalServiceAndStoreInRedisAsync();
-		foreach (var user in utilisateurs)
-		{
-			var result = user.CheckHashPassword(password);
-			if (result.Equals(true) && user.Email!.Equals(email))
-			{
-				find = true;
-				break;
-			}
-		}
-		return find;
-	}
-	public async Task<bool> ValidateAndSyncDataAsync(ICollection<UtilisateurDto> utilisateurDtos)
-	{
-		string cacheKey = "";   // Récupérer la liste des clés dans redis
-		var cachedData = await _cache.GetStringAsync(cacheKey);
-		HashSet<UtilisateurDto> redisData = null;
-
-		if (!string.IsNullOrEmpty(cachedData))
-		{
-			redisData = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
-		}
-		if (redisData == null || !redisData.SetEquals(utilisateurDtos))
-		{
-			// Identifier les différences
-			var newData = utilisateurDtos.Except(redisData ?? new HashSet<UtilisateurDto>()).ToList();
-			var removedData = (redisData ?? new HashSet<UtilisateurDto>()).Except(utilisateurDtos).ToList();
-             // Additionner les deux listes
-			logger.LogInformation("Nouvelles données ajoutées : {NewDataCount}", newData.Count);
-			logger.LogInformation("Données supprimées : {RemovedDataCount}", removedData.Count);
-
-			// Mettre à jour Redis avec les nouvelles données
-			var serializedData = JsonConvert.SerializeObject(utilisateurDtos);
-			await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
-			{
-				AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
-			});
-
-			logger.LogInformation("Redis mis à jour avec les nouvelles données pour la clé : {CacheKey}", cacheKey);
-		}
-		else
-		{
-			logger.LogInformation("Les données dans Redis et dans l'API sont déjà synchronisées.");
-		}
-		await Task.Delay(1000);
-		return false;
 	}
 
 }

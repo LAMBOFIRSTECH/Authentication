@@ -91,7 +91,7 @@ builder.Services.AddAuthentication("BasicAuthentication")
 var redisConfig = builder.Configuration.GetSection("Redis");
 var clientCertificate = new X509Certificate2(
 	redisConfig["Certificate:Redis-pfx"],
-	redisConfig["Certificate:Pfx-password"], 
+	redisConfig["Certificate:Pfx-password"],
 	X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.MachineKeySet
 );
 var options = new ConfigurationOptions
@@ -113,7 +113,7 @@ var caCertificate = new X509Certificate2(redisConfig["Certificate:Redis-ca"]);
 options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
 {
 	if (sslPolicyErrors == SslPolicyErrors.None)
-	return true;
+		return true;
 
 	// Accepter uniquement les erreurs liées à une CA auto-signée
 	if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
@@ -132,7 +132,7 @@ options.CertificateSelection += delegate { return clientCertificate; };
 builder.Services.AddStackExchangeRedisCache(opts =>
 {
 	opts.ConfigurationOptions = options;
-	
+
 });
 // Ajouter IConnectionMultiplexer une seule fois
 builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
@@ -149,7 +149,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
 	};
 });
 
-builder.Services.AddScoped<RedisCacheService>();
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 var app = builder.Build();
 /* 
 	+----------------------------------------------------+
