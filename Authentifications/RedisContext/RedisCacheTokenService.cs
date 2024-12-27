@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Caching.Distributed;
-
 namespace Authentifications.RedisContext;
 public class RedisCacheTokenService
 {
