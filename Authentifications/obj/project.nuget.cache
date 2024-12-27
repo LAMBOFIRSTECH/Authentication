@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "uevsidFKzCOAY2yg9E5EPNnFGLs3oCQmutSlPOYZUtxYJWWPiDN3rq0ltJqC7XHAzC6ZXpE0UhA/oRtNIogLfw==",
+  "dgSpecHash": "qRzbF2uVPsoQfq35zvIz8Lt3b0LIMDfl9q9OEOGj8PN0Ncl8+VQDUv/KJbrzARpGiKujvEUcvXE/YFtNK3QT3w==",
   "success": true,
   "projectFilePath": "/home/lambo-ubuntu/Authentication/Authentifications/Authentifications.csproj",
   "expectedPackageFiles": [
@@ -9,10 +9,13 @@
     "/home/lambo-ubuntu/.nuget/packages/hangfire/1.8.17/hangfire.1.8.17.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/hangfire.aspnetcore/1.8.17/hangfire.aspnetcore.1.8.17.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/hangfire.core/1.8.17/hangfire.core.1.8.17.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/hangfire.dashboard.basicauthorization/1.0.2/hangfire.dashboard.basicauthorization.1.0.2.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/hangfire.netcore/1.8.17/hangfire.netcore.1.8.17.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/hangfire.redis.stackexchange/1.9.4/hangfire.redis.stackexchange.1.9.4.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/hangfire.sqlserver/1.8.17/hangfire.sqlserver.1.8.17.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/6.0.0/microsoft.aspnetcore.authentication.jwtbearer.6.0.0.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/microsoft.aspnetcore.http.abstractions/2.1.1/microsoft.aspnetcore.http.abstractions.2.1.1.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/microsoft.aspnetcore.http.features/2.1.1/microsoft.aspnetcore.http.features.2.1.1.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.csharp/4.5.0/microsoft.csharp.4.5.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.entityframeworkcore/6.0.20/microsoft.entityframeworkcore.6.0.20.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/microsoft.entityframeworkcore.abstractions/6.0.20/microsoft.entityframeworkcore.abstractions.6.0.20.nupkg.sha512",

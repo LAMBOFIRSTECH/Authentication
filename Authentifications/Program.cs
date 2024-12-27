@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.Redis.StackExchange;
+using Hangfire.Dashboard.BasicAuthorization;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -91,18 +92,18 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
-var redisConfig = builder.Configuration.GetSection("Redis");
+var Config = builder.Configuration.GetSection("Redis");
 var clientCertificate = new X509Certificate2(
-	redisConfig["Certificate:Redis-pfx"],
-	redisConfig["Certificate:Pfx-password"],
+	Config["Certificate:Redis-pfx"],
+	Config["Certificate:Pfx-password"],
 	X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.MachineKeySet
 );
 var options = new ConfigurationOptions
 {
-	EndPoints = { redisConfig["ConnectionString"] },
+	EndPoints = { Config["ConnectionString"] },
 	Ssl = true,
 	SslHost = "Redis-Server", // Nom d'hôte TLS (C'est le common name du certificat pour le server redis pas pour le client)
-	Password = redisConfig["Password"], // Mot de passe Redis
+	Password = Config["Password"], // Mot de passe Redis
 	AbortOnConnectFail = false,
 	SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, // Vérifier la version tls de redis en amont
 	AllowAdmin = true,
@@ -111,7 +112,7 @@ var options = new ConfigurationOptions
 	ReconnectRetryPolicy = new ExponentialRetry(5000)
 };
 // On charge le CA
-var caCertificate = new X509Certificate2(redisConfig["Certificate:Redis-ca"]);
+var caCertificate = new X509Certificate2(Config["Certificate:Redis-ca"]);
 // Ajouter le certificat CA à la validation
 options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =>
 {
@@ -170,7 +171,27 @@ builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 
 var app = builder.Build();
 
-app.UseHangfireDashboard("/lambo-authentication-manager/hangfire");
+var HangFireConfig=builder.Configuration.GetSection("HangfireCredentials");
+app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()
+{
+	DashboardTitle = "Hangfire Dashboard",
+	Authorization = new[]
+	{
+		new BasicAuthAuthorizationFilter(
+			new BasicAuthAuthorizationFilterOptions
+			{
+				Users = new[]
+				{
+					new BasicAuthAuthorizationUser
+					{
+						Login = HangFireConfig["UserName"],
+						PasswordClear = HangFireConfig["Password"]
+					}
+				}
+			})
+	}
+});
+
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

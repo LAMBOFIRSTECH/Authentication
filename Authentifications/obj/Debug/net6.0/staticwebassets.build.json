@@ -1,11 +1,37 @@
 {
   "Version": 1,
-  "Hash": "t65+VJ3XZ0nS1vksiOqll08a6g6l4v23u57Z1j8dkrM=",
+  "Hash": "H5TGXNxrHSHH8YGVVvxQGQSQpFSCpOaQ3S39fJsXTIk=",
   "Source": "Authentifications",
   "BasePath": "_content/Authentifications",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "Authentifications/wwwroot",
+      "Source": "Authentifications",
+      "ContentRoot": "/home/lambo-ubuntu/Authentication/Authentifications/wwwroot/",
+      "BasePath": "_content/Authentifications",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/home/lambo-ubuntu/Authentication/Authentifications/wwwroot/custom-hangfire.js",
+      "SourceId": "Authentifications",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/lambo-ubuntu/Authentication/Authentifications/wwwroot/",
+      "BasePath": "_content/Authentifications",
+      "RelativePath": "custom-hangfire.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/custom-hangfire.js"
+    }
+  ]
 }

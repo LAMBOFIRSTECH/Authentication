@@ -110,3 +110,5 @@
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/zh-TW/Hangfire.Core.resources.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/zh/Hangfire.Core.resources.dll
 /home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Hangfire.Redis.StackExchange.dll
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Authentifications.staticwebassets.runtime.json
+/home/lambo-ubuntu/Authentication/Authentifications/bin/Debug/net6.0/Hangfire.Dashboard.BasicAuthorization.dll

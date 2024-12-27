@@ -11,6 +11,7 @@
           "BCrypt.Net-Next": "4.0.3",
           "Hangfire": "1.8.17",
           "Hangfire.AspNetCore": "1.8.17",
+          "Hangfire.Dashboard.BasicAuthorization": "1.0.2",
           "Hangfire.Redis.StackExchange": "1.9.4",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "6.0.0",
           "Microsoft.EntityFrameworkCore": "6.0.20",
@@ -109,6 +110,18 @@
           }
         }
       },
+      "Hangfire.Dashboard.BasicAuthorization/1.0.2": {
+        "dependencies": {
+          "Hangfire.AspNetCore": "1.8.17",
+          "Microsoft.AspNetCore.Http.Abstractions": "2.1.1"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Hangfire.Dashboard.BasicAuthorization.dll": {
+            "assemblyVersion": "1.0.2.0",
+            "fileVersion": "1.0.2.0"
+          }
+        }
+      },
       "Hangfire.NetCore/1.8.17": {
         "dependencies": {
           "Hangfire.Core": "1.8.17",
@@ -156,6 +169,17 @@
             "assemblyVersion": "6.0.0.0",
             "fileVersion": "6.0.21.52608"
           }
+        }
+      },
+      "Microsoft.AspNetCore.Http.Abstractions/2.1.1": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Features": "2.1.1",
+          "System.Text.Encodings.Web": "6.0.0"
+        }
+      },
+      "Microsoft.AspNetCore.Http.Features/2.1.1": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.0"
         }
       },
       "Microsoft.CSharp/4.5.0": {},
@@ -587,6 +611,13 @@
       "path": "hangfire.core/1.8.17",
       "hashPath": "hangfire.core.1.8.17.nupkg.sha512"
     },
+    "Hangfire.Dashboard.BasicAuthorization/1.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tlDkF4pGOA7VthYtzpmekqC9Uh5DRhemEFyK1WJhzlkn46LLVmHGtlPjADJn99EFMJH6RHBkZhJBAO9Y3MiWYA==",
+      "path": "hangfire.dashboard.basicauthorization/1.0.2",
+      "hashPath": "hangfire.dashboard.basicauthorization.1.0.2.nupkg.sha512"
+    },
     "Hangfire.NetCore/1.8.17": {
       "type": "package",
       "serviceable": true,
@@ -614,6 +645,20 @@
       "sha512": "sha512-eIhpX25uUn33Ornnh718V2G/nESvk3TNX2FjTarv634GLfE50Fhz2geJ/QYpSmFaUIQ1hkZPfd9i0LcpZ9bfLQ==",
       "path": "microsoft.aspnetcore.authentication.jwtbearer/6.0.0",
       "hashPath": "microsoft.aspnetcore.authentication.jwtbearer.6.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Abstractions/2.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-kQUEVOU4loc8CPSb2WoHFTESqwIa8Ik7ysCBfTwzHAd0moWovc9JQLmhDIHlYLjHbyexqZAlkq/FPRUZqokebw==",
+      "path": "microsoft.aspnetcore.http.abstractions/2.1.1",
+      "hashPath": "microsoft.aspnetcore.http.abstractions.2.1.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Features/2.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-VklZ7hWgSvHBcDtwYYkdMdI/adlf7ebxTZ9kdzAhX+gUs5jSHE9mZlTamdgf9miSsxc1QjNazHXTDJdVPZKKTw==",
+      "path": "microsoft.aspnetcore.http.features/2.1.1",
+      "hashPath": "microsoft.aspnetcore.http.features.2.1.1.nupkg.sha512"
     },
     "Microsoft.CSharp/4.5.0": {
       "type": "package",
