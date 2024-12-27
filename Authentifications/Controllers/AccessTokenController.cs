@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Authentifications.Services;
 using System.Text;
-using Authentifications.RedisContext;
 using System.ComponentModel.DataAnnotations;
 using Authentifications.Interfaces;
 namespace Authentifications.Controllers;
@@ -48,6 +47,11 @@ public class AccessTokenController : ControllerBase
 		await redisCache.GetDataFromRedisByFilterAsync(email,password); 
 		
 		log.LogInformation("Authentication successful");
+		//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
+		//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
+		//dotnet add package Hangfire   
+        //dotnet add package Hangfire.AspNetCore 
+
 		var result = await jwtToken.GetToken(email!);
 		if (!result.Response)
 		{

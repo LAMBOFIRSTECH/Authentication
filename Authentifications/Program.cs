@@ -9,8 +9,11 @@ using Authentifications.Repositories;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
+using Hangfire;
+using Hangfire.Redis.StackExchange;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -144,13 +147,39 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
 	}
 	catch (Exception ex)
 	{
-		Console.WriteLine("Error connecting to Redis: {0}", ex.Message);
+		var logger = provider.GetRequiredService<ILogger<Program>>();
+		logger.LogCritical("Error connecting to Redis: {0}", ex.Message);
 		throw;
 	};
 });
 
+builder.Services.AddHangfire(config =>
+{
+	var multiplexer = builder.Services.BuildServiceProvider().GetRequiredService<IConnectionMultiplexer>();
+	config.UseRedisStorage(multiplexer);
+});
+
+// Ajouter le tableau de bord et le serveur Hangfire
+builder.Services.AddHangfireServer(options =>
+{
+	options.WorkerCount = 5;
+	options.SchedulePollingInterval = TimeSpan.FromSeconds(40); // Vérifier toutes les 10 secondes
+});
+
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
 var app = builder.Build();
+
+app.UseHangfireDashboard("/lambo-authentication-manager/hangfire");
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+	BackgroundJob.Schedule<RedisCacheService>(
+		"recurrent_task", // Identifiant unique de la tâche
+		service => service.RetrieveDataFromExternalApiAsync(),
+		TimeSpan.FromMinutes(3) // Tâche exécutée toutes les minutes
+	);
+});
 /* 
 	+----------------------------------------------------+
 	| Enregistrement de middlewares Injection directe	 |

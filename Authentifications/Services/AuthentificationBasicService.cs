@@ -20,9 +20,6 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.log = log;
 	}
-	// public async Task<AuthenticateResult> AuthenticateAsync()
-	// { }
-
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
 		log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));

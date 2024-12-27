@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 
 namespace Authentifications.Models;
-public class UtilisateurDto
+public record UtilisateurDto
 {
 
 	/// <summary>
@@ -24,14 +24,6 @@ public class UtilisateurDto
 	[Required]
 	[Category("Security")]
 	public string? Pass { get; set; }
-	// public string SetHashPassword(string password)
-	// {
-	// 	if (!string.IsNullOrEmpty(password))
-	// 	{
-	// 		Pass = BCrypt.Net.BCrypt.HashPassword($"{password}");
-	// 	}
-	// 	return Pass!;
-	// }
 	public bool CheckHashPassword(string password)
 	{
 		return BCrypt.Net.BCrypt.Verify(password, Pass);

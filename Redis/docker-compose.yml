@@ -5,7 +5,7 @@ services:
     image: redis:latest
     container_name: redis-secure
     ports:
-      - "6379:6379"  # Expose Redis seulement si nécessaire
+     - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
       - redis
     volumes:
@@ -13,6 +13,7 @@ services:
       - ./redis.conf:/usr/local/etc/redis/redis.conf  # Fichier de configuration Redis personnalisé
       - ./certs:/certs  # Dossier des certificats TLS
       - /etc/localtime:/etc/localtime:ro  # Synchronisation de l'heure du conteneur avec l'hôte
+      - ./redis-log:/var/log/redis
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD} 
     command: >
@@ -22,6 +23,12 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"   # Limite la taille totale des logs
+        max-file: "1"     # Conserve seulement un fichier de log (utile pour limiter la rotation)
+    tty: true
 
 networks:
   redis:

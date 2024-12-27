@@ -1,0 +1,1 @@
+Hangfire.options.pollInterval = 20000; 
