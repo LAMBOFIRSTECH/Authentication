@@ -9,12 +9,12 @@ using Authentifications.Repositories;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.Redis.StackExchange;
 using Hangfire.Dashboard.BasicAuthorization;
+using Hangfire.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -68,7 +68,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection();
 builder.Services.AddHealthChecks();
 builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+//builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 
 /*
@@ -160,17 +160,17 @@ builder.Services.AddHangfire(config =>
 	config.UseRedisStorage(multiplexer);
 });
 
-// Ajouter le tableau de bord et le serveur Hangfire
 builder.Services.AddHangfireServer(options =>
 {
 	options.WorkerCount = 5;
-	options.SchedulePollingInterval = TimeSpan.FromSeconds(40); // Vérifier toutes les 10 secondes
+	options.SchedulePollingInterval = TimeSpan.FromMinutes(5); // Vérifier toutes les 10 secondes
 });
 
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 
 var app = builder.Build();
 
+// Ajouter le tableau de bord et le serveur Hangfire
 var HangFireConfig=builder.Configuration.GetSection("HangfireCredentials");
 app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()
 {

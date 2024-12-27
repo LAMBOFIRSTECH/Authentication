@@ -50,6 +50,10 @@
               "target": "Package",
               "version": "[1.8.17, )"
             },
+            "Hangfire.Console": {
+              "target": "Package",
+              "version": "[1.4.3, )"
+            },
             "Hangfire.Dashboard.BasicAuthorization": {
               "target": "Package",
               "version": "[1.0.2, )"
