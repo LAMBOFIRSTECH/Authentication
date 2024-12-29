@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
+using Authentifications.Interfaces;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -8,10 +9,11 @@ using Microsoft.Extensions.Options;
 namespace Authentifications.Repositories;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-
 	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	public AuthentificationBasicService(JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	private readonly IRedisCacheTokenService redis;
+	
+	public AuthentificationBasicService(IRedisCacheTokenService redis,JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
 	ISystemClock clock, ILogger<JwtBearerAuthenticationService> log)
@@ -19,6 +21,8 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	{
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.log = log;
+		this.redis = redis;
+		
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
@@ -39,6 +43,8 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 			var email = credentials[0];
 			var password = credentials[1];
+			redis.GenerateRedisKeyForTokenSession(email,password);
+			redis.StoreTokenSessionInRedis(email);
 			await Task.Delay(10);
 			jwtBearerAuthenticationService.GenerateJwtToken(email);
 			return AuthenticateResult.NoResult();

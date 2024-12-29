@@ -31,7 +31,7 @@ public class AccessTokenController : ControllerBase
 			HttpContext.Items["ModelValidationErrors"] = validationErrors;
 			return StatusCode(415);
 		}
-		
+
 		string credentials = $"{email}:{password}";
 
 		// Step 2: Encode the credentials in Base64
@@ -43,9 +43,14 @@ public class AccessTokenController : ControllerBase
 		};
 		var response = await _httpClient.SendAsync(requestMessage);
 		await response.Content.ReadAsStringAsync();
-		
-		await redisCache.GetDataFromRedisByFilterAsync(email,password); 
-		
+
+		var authResult = await redisCache.GetDataFromRedisByFilterAsync(email, password); // Faux
+		if (authResult is false)
+		{
+			log.LogError($"Not found email {email}");
+			return NotFound($"Not found email {email}");
+		}
+
 		log.LogInformation("Authentication successful");
 		//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
 		//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
@@ -62,8 +67,8 @@ public class AccessTokenController : ControllerBase
 	{
 		string email = "lambo@example.com";
 		string password = "lambo";
-		var result=await redisCache.GetDataFromRedisByFilterAsync(email,password);
-		if(result is false)
+		var result = await redisCache.GetDataFromRedisByFilterAsync(email, password);
+		if (result is false)
 		{
 			log.LogError($"Not found email {email}");
 			return NotFound($"Not found email {email}");

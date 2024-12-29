@@ -11,12 +11,15 @@ public class JwtBearerAuthenticationService : IJwtToken
 {
 	private readonly IConfiguration configuration;
 	private RsaSecurityKey rsaSecurityKey;
+	private UtilisateurDto user;
 	private readonly ILogger<RsaSecurityKey> log;
-	public JwtBearerAuthenticationService(IConfiguration configuration,ILogger<RsaSecurityKey> log)
+
+	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log)
 	{
 		this.configuration = configuration;
 		this.log = log;
 		rsaSecurityKey = GetOrCreateSigningKey();
+		user=new UtilisateurDto();
 	}
 	public async Task<TokenResult> GetToken(string email)
 	{
@@ -70,14 +73,15 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
 			Subject = new ClaimsIdentity(new[] {
+					new Claim(ClaimTypes.Name, user.Nom),
 					new Claim(ClaimTypes.Email, email),
-					new Claim(ClaimTypes.Role, UtilisateurDto.Privilege.Administrateur.ToString()),
+					new Claim(ClaimTypes.Role, user.Role.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
 			),
 			Expires = DateTime.UtcNow.AddHours(1),
-			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.HmacSha512Signature),
+			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
 			Audience = "https://audience1.com" // Primary audience
 		};
@@ -90,23 +94,5 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
 	}
-	public bool IsTokenExpired(string token)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
-        if (jwtToken == null)
-            return true;
 
-        var expirationDate = jwtToken.ValidTo;
-        return expirationDate < DateTime.UtcNow;
-    }
-
-    public string RefreshToken(string token, string email)
-    {
-        if (IsTokenExpired(token))
-        {
-            return GenerateJwtToken(email);
-        }
-        return token;
-    }
 }

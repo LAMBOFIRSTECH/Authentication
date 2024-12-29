@@ -11,8 +11,8 @@ public record UtilisateurDto
 	/// Représente l'identifiant unique d'un utilisateur.
 	/// </summary>
 	[Key]
-	 [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public Guid ID { get; set; }
+	 [DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
+	public Guid ID { get; set; } // Non
 	[Required]
 	public string Nom { get; set; } = string.Empty;
 

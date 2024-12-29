@@ -19,6 +19,7 @@ public class RedisCacheService : IRedisCacheService
 	private readonly HttpResponseMessage response = null; //Plustard
 	private readonly string baseUrl = string.Empty;
 	private readonly string cacheKey = string.Empty;
+	private static DateTime _lastExecution = DateTime.MinValue;
 
 
 	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
@@ -79,7 +80,7 @@ public class RedisCacheService : IRedisCacheService
 	public async Task<bool> GetDataFromRedisByFilterAsync(string email, string password)
 	{
 		bool find = false;
-		var utilisateurs = await RetrieveData_OnRedisUsingKeyOrFromExternalApiAndStoreInRedisAsync();
+		var utilisateurs = await RetrieveData_OnRedisUsingKeyAsync();
 		foreach (var user in utilisateurs)
 		{
 			var result = user.CheckHashPassword(password);
@@ -91,18 +92,22 @@ public class RedisCacheService : IRedisCacheService
 		}
 		return find;
 	}
-	public void BackGroundJob(IServiceCollection services)
-	{ 
-		var redisConnectionString = configuration.GetValue<string>("Redis:ConnectionString");
-
-        // Configurer Hangfire pour utiliser Redis
-        services.AddHangfire(config =>
-        {
-            config.UseRedisStorage(redisConnectionString); // Remplacer par le bon string de connexion Redis
-        });
-
-        // Ajouter le serveur Hangfire
-        services.AddHangfireServer();
+	public async Task BackGroundJob() 
+	{
+		if ((DateTime.Now - _lastExecution).TotalMinutes >= 2)
+		{
+			_lastExecution = DateTime.Now;
+			await RetrieveData_OnRedisUsingKeyAsync();
+		}
+	}
+	public void DeleteRedisCacheAfterOneDay() 
+	{
+		if ((DateTime.Now - _lastExecution).TotalMinutes >= 5)
+		{
+			_lastExecution = DateTime.Now;
+			_cache.Remove(cacheKey);
+			logger.LogInformation("Deleting sucessfully.");
+		}
 	}
 	public async Task<ICollection<UtilisateurDto>> RetrieveDataFromExternalApiAsync()
 	{
@@ -114,7 +119,7 @@ public class RedisCacheService : IRedisCacheService
 				response.EnsureSuccessStatusCode();
 				var content = await response.Content.ReadAsStringAsync();
 				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(content)!;
-			}
+			}		
 		}
 		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
 		{
@@ -126,8 +131,9 @@ public class RedisCacheService : IRedisCacheService
 			logger.LogError(ex, "Unexpected error while calling the API.");
 			throw;
 		}
+		
 	}
-	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyOrFromExternalApiAndStoreInRedisAsync()
+	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyAsync()
 	{
 		var cachedData = await _cache.GetStringAsync(cacheKey);
 		if (cachedData is not null)
@@ -147,7 +153,7 @@ public class RedisCacheService : IRedisCacheService
 				logger.LogCritical("Failed to Validate data between Redis and External API Service. Erreur : {Message}", ex.Message);
 				logger.LogWarning("Utilisation des données de Redis.");
 
-				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!; // A revoir 
 			}
 		}
 		logger.LogInformation("Aucune données présentes dans le cache Redis.");
@@ -202,7 +208,7 @@ public class RedisCacheService : IRedisCacheService
 		var serializedData = JsonConvert.SerializeObject(externalApiData);
 		await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
 		{
-			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
 		});
 
 		logger.LogInformation("Redis mise à jour avec les données de l'API pour la clé : {CacheKey}", cacheKey);

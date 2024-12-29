@@ -77,6 +77,8 @@ builder.Logging.AddConsole();
 	+----------------------------------------------------------------------+
 */
 builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 
 /* 
 	+----------------------------------------------------+
@@ -85,6 +87,7 @@ builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
 */
 
 builder.Services.AddScoped<JwtBearerAuthenticationService>();
+builder.Services.AddTransient<AuthentificationBasicService>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -160,18 +163,21 @@ builder.Services.AddHangfire(config =>
 	config.UseRedisStorage(multiplexer);
 });
 
+// consumer 
 builder.Services.AddHangfireServer(options =>
 {
 	options.WorkerCount = 5;
-	options.SchedulePollingInterval = TimeSpan.FromMinutes(5); // Vérifier toutes les 10 secondes
+	options.SchedulePollingInterval = TimeSpan.FromMinutes(3); // Vérifier toutes les 10 secondes
+	options.Queues = new[] { "forcast_task" };
+
 });
 
-builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
 
 var app = builder.Build();
 
 // Ajouter le tableau de bord et le serveur Hangfire
-var HangFireConfig=builder.Configuration.GetSection("HangfireCredentials");
+var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
 app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()
 {
 	DashboardTitle = "Hangfire Dashboard",
@@ -195,11 +201,16 @@ app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardO
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-	BackgroundJob.Schedule<RedisCacheService>(
-		"recurrent_task", // Identifiant unique de la tâche
-		service => service.RetrieveDataFromExternalApiAsync(),
-		TimeSpan.FromMinutes(3) // Tâche exécutée toutes les minutes
-	);
+	// BackgroundJob.Schedule<RedisCacheService>( //Producer
+	// 	"call_api", // Identifiant unique de la tâche
+	// 	service => service.BackGroundJob(),
+	// 	TimeSpan.Zero  // On initie immédiatement la tâche
+	// );
+	// BackgroundJob.Schedule<RedisCacheService>(
+	// 	"delete_cache", // Identifiant unique de la tâche
+	// 	service => service.DeleteRedisCacheAfterOneDay(),
+	// 	TimeSpan.Zero 
+	// );
 });
 /* 
 	+----------------------------------------------------+
