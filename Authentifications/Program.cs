@@ -201,11 +201,11 @@ app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardO
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-	// BackgroundJob.Schedule<RedisCacheService>( //Producer
-	// 	"call_api", // Identifiant unique de la tâche
-	// 	service => service.BackGroundJob(),
-	// 	TimeSpan.Zero  // On initie immédiatement la tâche
-	// );
+	BackgroundJob.Schedule<RedisCacheService>( //Producer
+		"call_api", // Identifiant unique de la tâche
+		service => service.BackGroundJob(),
+		TimeSpan.Zero  // On initie immédiatement la tâche
+	);
 	// BackgroundJob.Schedule<RedisCacheService>(
 	// 	"delete_cache", // Identifiant unique de la tâche
 	// 	service => service.DeleteRedisCacheAfterOneDay(),

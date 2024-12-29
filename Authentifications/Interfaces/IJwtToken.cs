@@ -4,6 +4,6 @@ namespace Authentifications.Interfaces
 {
 	public interface IJwtToken
 	{
-		Task<TokenResult> GetToken(string email);
+		Task<TokenResult> GetToken(UtilisateurDto utilisateurDto);
 	}
 }

@@ -11,11 +11,12 @@ public record UtilisateurDto
 	/// Représente l'identifiant unique d'un utilisateur.
 	/// </summary>
 	[Key]
-	 [DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
-	public Guid ID { get; set; } // Non
+	[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+	public Guid ID { get; set; }
+	[MaxLength(20, ErrorMessage = "Username cannot exceed 20 characters")]
+	public string Nom { get; set; } = string.Empty; // A terme on aura le nom complet de l'utilisateur {Nom + Prenom}
 	[Required]
-	public string Nom { get; set; } = string.Empty;
-
+	[EmailAddress]
 	public string? Email { get; set; }
 	public enum Privilege { Administrateur, Utilisateur }
 	[EnumDataType(typeof(Privilege))]
@@ -38,4 +39,17 @@ public record UtilisateurDto
 		Match check = Regex.Match(email, regexMatch);
 		return check.Success;
 	}
+	public class Login
+	{
+		[Required]
+		[EmailAddress]
+		public string? Email { get; set; }
+		[Required]
+		public string? Pass { get; set; }
+		public enum Privilege { Administrateur, Utilisateur }
+		[EnumDataType(typeof(Privilege))]
+		[Required]
+		public Privilege Role { get; set; }
+	}
+
 }

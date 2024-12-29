@@ -3,6 +3,8 @@ using Authentifications.Services;
 using System.Text;
 using System.ComponentModel.DataAnnotations;
 using Authentifications.Interfaces;
+using Authentifications.Models;
+using System.Reflection.Metadata.Ecma335;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -19,42 +21,21 @@ public class AccessTokenController : ControllerBase
 		this.redisCache = redisCache;
 	}
 	[HttpPost("login")]
-	public async Task<ActionResult> Authentificate([EmailAddress] string email, [DataType(DataType.Password)] string password)
+	public async Task<ActionResult> Authentificate([FromBody] UtilisateurDto utilisateurDto)
 	{
 		if (!ModelState.IsValid)
-		{
-			// Ajouter les erreurs de validation dans HttpContext.Items
-			var validationErrors = ModelState.Values
-				.SelectMany(v => v.Errors)
-				.Select(e => e.ErrorMessage)
-				.ToList();
-			HttpContext.Items["ModelValidationErrors"] = validationErrors;
-			return StatusCode(415);
-		}
+			return BadRequest(ModelState);
+		if (utilisateurDto.Email is null || utilisateurDto.Pass is null)
+			return BadRequest("Email or password is null");
+		if (!utilisateurDto.CheckEmailAdress(utilisateurDto.Email))
+			return BadRequest($"Invalid email");
 
-		string credentials = $"{email}:{password}";
-
-		// Step 2: Encode the credentials in Base64
-		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-		string authorizationHeader = $"Basic {base64Credentials}";
-		var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7103/api/v1/login")
-		{
-			Headers = { { "Authorization", authorizationHeader } }
-		};
-		var response = await _httpClient.SendAsync(requestMessage);
-		await response.Content.ReadAsStringAsync();
-
-		var authResult = await redisCache.GetDataFromRedisByFilterAsync(email, password); // Faux
-		if (authResult is false)
-		{
-			log.LogError($"Not found email {email}");
-			return NotFound($"Not found email {email}");
-		}
-
+		var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(ModelState.IsValid, utilisateurDto.Email, utilisateurDto.Pass);
 		log.LogInformation("Authentication successful");
+		var utilisateur = tupleResult.Item2;
 		//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
 		//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
-		var result = await jwtToken.GetToken(email!);
+		var result = await jwtToken.GetToken(utilisateur);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message });

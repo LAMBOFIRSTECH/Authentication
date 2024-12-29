@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Authentifications.Interfaces;
+using Authentifications.Models;
 using Authentifications.Services;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
@@ -33,14 +34,14 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		var expirationDate = jwtToken.ValidTo;
 		return expirationDate < DateTime.UtcNow;
 	}
-	public string RefreshToken(string token, string email)
-	{
-		if (IsTokenExpired(token))
-		{
-			return jwtBearerAuthenticationService.GenerateJwtToken(email);
-		}
-		return token;
-	}
+	// public string RefreshToken(string token, string email)
+	// {
+	// 	if (IsTokenExpired(token))
+	// 	{
+	// 		return jwtBearerAuthenticationService.GenerateJwtToken(email);
+	// 	}
+	// 	return token;
+	// }
 	public string GenerateRedisKeyForTokenSession(string email, string password)
 	{
 		string salt = "RandomUniqueSalt";
@@ -80,7 +81,8 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 	}
 	public void StoreTokenSessionInRedis(string email)
 	{
-		string token = jwtBearerAuthenticationService.GenerateJwtToken(email);
+		UtilisateurDto utilisateurDto= new UtilisateurDto();
+		string token = jwtBearerAuthenticationService.GenerateJwtToken(utilisateurDto);
 		Dictionary<string, object> jsonObject = new Dictionary<string, object>
 		{
 			{ "RedisID", new Guid() },
@@ -102,4 +104,8 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		}
 	}
 
+    public string RefreshToken(string token, string email)
+    {
+        throw new NotImplementedException();
+    }
 }

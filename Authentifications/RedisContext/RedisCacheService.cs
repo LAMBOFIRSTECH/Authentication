@@ -92,7 +92,24 @@ public class RedisCacheService : IRedisCacheService
 		}
 		return find;
 	}
-	public async Task BackGroundJob() 
+	public async Task<(bool, UtilisateurDto)> GetDataFromRedisUsingParamsAsync(bool condition, string email, string password)
+	{
+		if (condition)
+		{
+			var utilisateurs = await RetrieveData_OnRedisUsingKeyAsync();
+			foreach (var user in utilisateurs)
+			{
+				var result = user.CheckHashPassword(password);
+				if (result.Equals(true) && user.Email!.Equals(email))
+				{
+					return (true, user);		
+				}
+				// throw new Exception("Email ou mot de passe incorrect");
+			}
+		}
+		return (false, null!);
+	}
+	public async Task BackGroundJob()
 	{
 		if ((DateTime.Now - _lastExecution).TotalMinutes >= 2)
 		{
@@ -100,7 +117,7 @@ public class RedisCacheService : IRedisCacheService
 			await RetrieveData_OnRedisUsingKeyAsync();
 		}
 	}
-	public void DeleteRedisCacheAfterOneDay() 
+	public void DeleteRedisCacheAfterOneDay()
 	{
 		if ((DateTime.Now - _lastExecution).TotalMinutes >= 5)
 		{
@@ -119,7 +136,7 @@ public class RedisCacheService : IRedisCacheService
 				response.EnsureSuccessStatusCode();
 				var content = await response.Content.ReadAsStringAsync();
 				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(content)!;
-			}		
+			}
 		}
 		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
 		{
@@ -131,7 +148,7 @@ public class RedisCacheService : IRedisCacheService
 			logger.LogError(ex, "Unexpected error while calling the API.");
 			throw;
 		}
-		
+
 	}
 	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyAsync()
 	{

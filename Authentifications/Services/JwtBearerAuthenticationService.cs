@@ -11,7 +11,6 @@ public class JwtBearerAuthenticationService : IJwtToken
 {
 	private readonly IConfiguration configuration;
 	private RsaSecurityKey rsaSecurityKey;
-	private UtilisateurDto user;
 	private readonly ILogger<RsaSecurityKey> log;
 
 	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log)
@@ -19,17 +18,17 @@ public class JwtBearerAuthenticationService : IJwtToken
 		this.configuration = configuration;
 		this.log = log;
 		rsaSecurityKey = GetOrCreateSigningKey();
-		user=new UtilisateurDto();
 	}
-	public async Task<TokenResult> GetToken(string email)
-	{
-		await Task.Delay(500);
+	
+    public async Task<TokenResult> GetToken(UtilisateurDto utilisateurDto)
+    {
+        await Task.Delay(500);
 		return new TokenResult
 		{
 			Response = true,
-			Token = GenerateJwtToken(email)
+			Token = GenerateJwtToken(utilisateurDto)
 		};
-	}
+    }
 	private RsaSecurityKey GetOrCreateSigningKey()
 	{
 		if (rsaSecurityKey != null)
@@ -67,15 +66,15 @@ public class JwtBearerAuthenticationService : IJwtToken
 	// 	log.LogInformation("Clé publique stockée avec succès dans Vault !");
 	// }
 
-	public string GenerateJwtToken(string email)
+	public string GenerateJwtToken(UtilisateurDto utilisateurDto)
 	{
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
 			Subject = new ClaimsIdentity(new[] {
-					new Claim(ClaimTypes.Name, user.Nom),
-					new Claim(ClaimTypes.Email, email),
-					new Claim(ClaimTypes.Role, user.Role.ToString()),
+					new Claim(ClaimTypes.Name, utilisateurDto.Nom),
+					new Claim(ClaimTypes.Email, utilisateurDto.Email!),
+					new Claim(ClaimTypes.Role, utilisateurDto.Role.ToString()),
 					new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
