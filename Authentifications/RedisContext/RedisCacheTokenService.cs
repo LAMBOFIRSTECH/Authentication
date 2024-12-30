@@ -72,24 +72,21 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 	{
 		var cachedData = await _cache.GetStringAsync(cacheKey);
 		//_cache.keys("*");
-		if (cachedData is  null)
+		if (cachedData is null)
 		{
 			logger.LogError("Aucune donnée trouvée dans Redis pour la clé : {CacheKey}", cacheKey);
 			throw new Exception("Aucune donnée trouvée dans Redis");
 		}
 		return JsonConvert.DeserializeObject<ICollection<Object>>(cachedData)!;
 	}
-	public void StoreTokenSessionInRedis(string email)
+	public void StoreTokenSessionInRedis(string token, string email)
 	{
-		UtilisateurDto utilisateurDto= new UtilisateurDto();
-		string token = jwtBearerAuthenticationService.GenerateJwtToken(utilisateurDto);
 		Dictionary<string, object> jsonObject = new Dictionary<string, object>
 		{
-			{ "RedisID", new Guid() },
+			{ "RedisTokenId", new Guid() },
 			{ "Email", email },
 			{ "Token", token }
 		};
-
 		var cachedData = _cache.GetStringAsync(cacheKey);
 		if (cachedData is not null)
 		{
@@ -98,14 +95,11 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 			{
 				AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24) // Modifier pour test
 			});
-
-			logger.LogInformation("Redis mise à jour avec les données de l'API pour la clé : {CacheKey}", cacheKey);
-
+			logger.LogInformation("Redis a mise à jour avec les données du token de connexion pour la clé: {CacheKey}", cacheKey);
 		}
 	}
-
-    public string RefreshToken(string token, string email)
-    {
-        throw new NotImplementedException();
-    }
+	public string RefreshToken(string token, string email)
+	{
+		throw new NotImplementedException();
+	}
 }

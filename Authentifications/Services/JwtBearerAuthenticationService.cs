@@ -19,16 +19,16 @@ public class JwtBearerAuthenticationService : IJwtToken
 		this.log = log;
 		rsaSecurityKey = GetOrCreateSigningKey();
 	}
-	
-    public async Task<TokenResult> GetToken(UtilisateurDto utilisateurDto)
-    {
-        await Task.Delay(500);
+
+	public async Task<TokenResult> GetToken(UtilisateurDto utilisateurDto)
+	{
+		await Task.Delay(500);
 		return new TokenResult
 		{
 			Response = true,
 			Token = GenerateJwtToken(utilisateurDto)
 		};
-    }
+	}
 	private RsaSecurityKey GetOrCreateSigningKey()
 	{
 		if (rsaSecurityKey != null)
@@ -82,9 +82,9 @@ public class JwtBearerAuthenticationService : IJwtToken
 			Expires = DateTime.UtcNow.AddHours(1),
 			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
-			Audience = "https://audience1.com" // Primary audience
+			Audience = "https://192.168.153.131:7250" // Primary audience
 		};
-		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500", "https://localhost:7082", "https://192.168.153.131:7250" }; // Notre API et potentiellement le broker MQ
+		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500", "https://localhost:7082", "https://audience1.com" }; // Notre API et potentiellement le broker MQ
 		tokenDescriptor.AdditionalHeaderClaims = new Dictionary<string, object>
 		{
 			{ JwtRegisteredClaimNames.Aud, additionalAudiences }
@@ -93,5 +93,10 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
 	}
-
+	public async Task<UtilisateurDto> BasicAuthResponseAsync((bool IsValid, UtilisateurDto utilisateurDto) tupleParameter)
+	{
+		await Task.Delay(50);
+		log.LogInformation("Authentication successful", tupleParameter.IsValid);
+		return tupleParameter.utilisateurDto;
+	}
 }

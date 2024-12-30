@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Authentifications.Services;
-using System.Text;
-using System.ComponentModel.DataAnnotations;
 using Authentifications.Interfaces;
 using Authentifications.Models;
-using System.Reflection.Metadata.Ecma335;
+using System.Text;
+using Microsoft.OpenApi.Expressions;
+using System.Text.Json;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -30,12 +30,38 @@ public class AccessTokenController : ControllerBase
 		if (!utilisateurDto.CheckEmailAdress(utilisateurDto.Email))
 			return BadRequest($"Invalid email");
 
-		var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(ModelState.IsValid, utilisateurDto.Email, utilisateurDto.Pass);
+		string credentials = $"{utilisateurDto.Email}:{utilisateurDto.Pass}";
+		// Step 2: Encode the credentials in Base64
+		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+		string authorizationHeader = $"Basic {base64Credentials}";
+		var modelStateJson = new
+		{
+			valideModelState = ModelState.IsValid,
+			email = utilisateurDto.Email,
+			password = utilisateurDto.Pass
+		};
+		string jsonContent = JsonSerializer.Serialize(modelStateJson);
+		var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7103/api/v1/login")
+		{
+			Headers = { { "Authorization", authorizationHeader } },
+			Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+		};
+		var response = await _httpClient.SendAsync(requestMessage);
+		if (response.IsSuccessStatusCode == false)
+		{
+			return Unauthorized(new { Message = "Invalid credentials" });
+		}
+		await response.Content.ReadAsStringAsync();
+		var user = await jwtToken.BasicAuthResponseAsync((ModelState.IsValid,utilisateurDto));
+
+		// var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(ModelState.IsValid, utilisateurDto.Email, utilisateurDto.Pass);
+		// if (tupleResult.Item1 is false)
+		// {
+		// 	log.LogError("Authentication failed");
+		// 	return Unauthorized($"Authentication failed, email adress or password is incorrect");
+		// }
 		log.LogInformation("Authentication successful");
-		var utilisateur = tupleResult.Item2;
-		//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
-		//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
-		var result = await jwtToken.GetToken(utilisateur);
+		var result = await jwtToken.GetToken(user);
 		if (!result.Response)
 		{
 			return Unauthorized(new { result.Message });

@@ -176,6 +176,8 @@ builder.Services.AddHangfireServer(options =>
 
 var app = builder.Build();
 
+
+
 // Ajouter le tableau de bord et le serveur Hangfire
 var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
 app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()
@@ -230,6 +232,7 @@ if (app.Environment.IsDevelopment())
 
 	 });
 }
+
 app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
 app.UseRouting();
@@ -244,4 +247,9 @@ app.UseEndpoints(endpoints =>
 			await context.Response.WriteAsync("Version de l'API : 1");
 		});
  });
+app.Use(async (context, next) =>
+{
+   context.Request.EnableBuffering(); // Permet de relire le Request.Body
+   await next.Invoke();
+});
 app.Run();

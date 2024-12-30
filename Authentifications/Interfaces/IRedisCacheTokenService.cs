@@ -7,6 +7,6 @@ namespace Authentifications.Interfaces
 		bool IsTokenExpired(string token);
 		string RefreshToken(string token, string email);
 		string GenerateRedisKeyForTokenSession(string email,string password);
-		void StoreTokenSessionInRedis(string email);
+		void StoreTokenSessionInRedis(string token, string email);
 	}
 }

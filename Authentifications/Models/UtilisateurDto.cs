@@ -39,17 +39,15 @@ public record UtilisateurDto
 		Match check = Regex.Match(email, regexMatch);
 		return check.Success;
 	}
-	public class Login
+	public class LoginRequest
 	{
 		[Required]
 		[EmailAddress]
 		public string? Email { get; set; }
 		[Required]
 		public string? Pass { get; set; }
-		public enum Privilege { Administrateur, Utilisateur }
-		[EnumDataType(typeof(Privilege))]
 		[Required]
-		public Privilege Role { get; set; }
+		public bool State { get; set; }
 	}
 
 }

@@ -15,12 +15,11 @@ public class RedisCacheService : IRedisCacheService
 	private readonly IDistributedCache _cache;
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
-	private readonly HttpClient httpClient = null;
-	private readonly HttpResponseMessage response = null; //Plustard
+	private readonly HttpClient httpClient = null!;
+	private readonly HttpResponseMessage response = null!; //Plustard
 	private readonly string baseUrl = string.Empty;
 	private readonly string cacheKey = string.Empty;
 	private static DateTime _lastExecution = DateTime.MinValue;
-
 
 	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
 	{
@@ -30,7 +29,6 @@ public class RedisCacheService : IRedisCacheService
 		baseUrl = configuration["ApiSettings:BaseUrl"];
 		httpClient = CreateHttpClient(baseUrl);
 		cacheKey = GenerateRedisKey();
-
 	}
 	public HttpClient CreateHttpClient(string baseUrl)
 	{
@@ -104,7 +102,6 @@ public class RedisCacheService : IRedisCacheService
 				{
 					return (true, user);		
 				}
-				// throw new Exception("Email ou mot de passe incorrect");
 			}
 		}
 		return (false, null!);
@@ -148,7 +145,6 @@ public class RedisCacheService : IRedisCacheService
 			logger.LogError(ex, "Unexpected error while calling the API.");
 			throw;
 		}
-
 	}
 	public async Task<ICollection<UtilisateurDto>> RetrieveData_OnRedisUsingKeyAsync()
 	{
@@ -167,14 +163,12 @@ public class RedisCacheService : IRedisCacheService
 			}
 			catch (Exception ex)
 			{
-				logger.LogCritical("Failed to Validate data between Redis and External API Service. Erreur : {Message}", ex.Message);
+				logger.LogError("Failed to Validate data between Redis and External API Service. Erreur : {Message}", ex.Message);
 				logger.LogWarning("Utilisation des données de Redis.");
-
-				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!; // A revoir 
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!; // Normal comme il n'a pas pu valider la data avec l'api externe on utilise celle de redis
 			}
 		}
 		logger.LogInformation("Aucune données présentes dans le cache Redis.");
-
 		var utilisateurs = await RetrieveDataFromExternalApiAsync();
 		if (utilisateurs == null || !utilisateurs.Any())
 		{
@@ -197,14 +191,12 @@ public class RedisCacheService : IRedisCacheService
 				return null;
 			}
 			var redisData = JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
-
 			if (!redisData!.SetEquals(externalApiData))
 			{
 				logger.LogInformation("Synchronisation des données.........");
 				await UpdateRedisCacheWithExternalApiData(externalApiData);
 				return externalApiData;
 			}
-
 			logger.LogInformation("Les données Redis sont identiques à celles de l'API. Utilisation des données de Redis.");
 			return redisData;
 		}
@@ -221,13 +213,11 @@ public class RedisCacheService : IRedisCacheService
 	}
 	private async Task UpdateRedisCacheWithExternalApiData(ICollection<UtilisateurDto> externalApiData)
 	{
-		// Sérialiser et stocker les données dans Redis
 		var serializedData = JsonConvert.SerializeObject(externalApiData);
 		await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
 		{
 			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
 		});
-
 		logger.LogInformation("Redis mise à jour avec les données de l'API pour la clé : {CacheKey}", cacheKey);
 	}
 }

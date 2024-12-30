@@ -1,10 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using Authentifications.Interfaces;
+using Authentifications.Models;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using static Authentifications.Models.UtilisateurDto;
 
 namespace Authentifications.Repositories;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
@@ -26,6 +29,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 		this.redisCache = redisCache;
 
 	}
+
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
 		log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
@@ -37,19 +41,49 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
 			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
 				return AuthenticateResult.Fail("Invalid Authorization header format");
+			if (Request.ContentType == null || !Request.ContentType.Contains("application/json"))
+				return AuthenticateResult.Fail("Invalid Content-Type. Expected 'application/json'.");
+
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
 			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
 
 			if (credentials.Length != 2)
 				return AuthenticateResult.Fail("Invalid Authorization header format");
+			Request.Body.Position = 0;
+			using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8,leaveOpen: true))
+			{
+				string jsonBody = await reader.ReadToEndAsync();
+				Request.Body.Position = 0;
+				// Désérialiser le JSON pour le manipuler
+				var requestData = JsonSerializer.Deserialize<LoginRequest>(jsonBody);
 
-			var email = credentials[0];
-			var password = credentials[1];
-			// redisToken.GenerateRedisKeyForTokenSession(email, password);
-			// redisToken.StoreTokenSessionInRedis(email);
-			var user = (await redisCache.GetDataFromRedisUsingParamsAsync(true, email, password)).Item2;
-			jwtBearerAuthenticationService.GenerateJwtToken(user);
-			return AuthenticateResult.NoResult();
+				if (requestData == null || string.IsNullOrEmpty(requestData.Email) || string.IsNullOrEmpty(requestData.Pass))
+				{
+					return AuthenticateResult.Fail("Invalid JSON body.");
+				}
+				log.LogWarning("Authentication ----------",requestData.Email);
+				log.LogWarning("Authentication ----------",requestData.Pass);
+				log.LogWarning("Authentication ----------",requestData.State);
+
+				var email = credentials[0];
+				var password = credentials[1];
+				//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
+				//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
+				// redisToken.GenerateRedisKeyForTokenSession(email, password);
+				// redisToken.StoreTokenSessionInRedis(email);
+				var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(requestData.State, email, password);
+				if (tupleResult.Item1 is false)
+				{
+					log.LogError("Authentication failed");
+					return AuthenticateResult.Fail($"Authentication failed, email adress or password is incorrect");
+				}
+				await jwtBearerAuthenticationService.BasicAuthResponseAsync(tupleResult);
+				//return AuthenticateResult.Success();
+				// jwtBearerAuthenticationService.GenerateJwtToken(user);
+				// var token = jwtBearerAuthenticationService.GenerateJwtToken(user);
+				// redisToken.StoreTokenSessionInRedis(token, email);
+				return AuthenticateResult.NoResult();
+			}
 		}
 		catch (FormatException)
 		{
