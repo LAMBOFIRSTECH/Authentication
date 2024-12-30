@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 
 namespace Authentifications.Models;
-public record UtilisateurDto
+public class UtilisateurDto
 {
 
 	/// <summary>
@@ -39,15 +39,11 @@ public record UtilisateurDto
 		Match check = Regex.Match(email, regexMatch);
 		return check.Success;
 	}
-	public class LoginRequest
-	{
-		[Required]
-		[EmailAddress]
-		public string? Email { get; set; }
-		[Required]
-		public string? Pass { get; set; }
-		[Required]
-		public bool State { get; set; }
-	}
+}
 
+public class LoginRequest : UtilisateurDto
+{
+	[Required]
+	public bool State { get; set; }
+	public LoginRequest(){}
 }

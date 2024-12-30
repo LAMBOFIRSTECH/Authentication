@@ -5,7 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
 using Authentifications.RedisContext;
-using Authentifications.Repositories;
 using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +20,12 @@ var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 // Conteneur d'enregistrement de dépendances -------------------------------- 
 
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
+// builder.Services.AddControllers(options =>
+// {
+// 	options.Filters.Add(typeof(ValidateModelStateFilter));
+// });
+
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
 	options.SuppressModelStateInvalidFilter = true;
@@ -88,6 +92,7 @@ builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 
 builder.Services.AddScoped<JwtBearerAuthenticationService>();
 builder.Services.AddTransient<AuthentificationBasicService>();
+builder.Services.AddScoped<RequestDelegate>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -175,9 +180,6 @@ builder.Services.AddHangfireServer(options =>
 
 
 var app = builder.Build();
-
-
-
 // Ajouter le tableau de bord et le serveur Hangfire
 var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
 app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()

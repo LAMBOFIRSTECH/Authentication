@@ -6,6 +6,8 @@ using System.Text;
 using Microsoft.OpenApi.Expressions;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using static Authentifications.Models.UtilisateurDto;
+using System.Net.Http.Headers;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -22,38 +24,41 @@ public class AccessTokenController : ControllerBase
 		this.redisCache = redisCache;
 	}
 	[HttpPost("login")]
-	public async Task<ActionResult> Authentificate([FromHeader] UtilisateurDto utilisateurDto)
+	public async Task<ActionResult> Authentificate([FromBody] UtilisateurDto utilisateurDto)
 	{
+		if (!User.Identity!.IsAuthenticated)  // Il faut générer un ticket pour le user authentifié dans basic auth
+		{
+			return Unauthorized("Unauthorized access");
+		}
+		string email = User.Identity.Name!;
 		if (!ModelState.IsValid)
 			return BadRequest(ModelState);
-		if (utilisateurDto.Email is null || utilisateurDto.Pass is null)
-			return BadRequest("Email or password is null");
-		if (!utilisateurDto.CheckEmailAdress(utilisateurDto.Email))
+		if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(utilisateurDto.Pass))
+			return BadRequest("Email or password is missing.");
+		if (!utilisateurDto.CheckEmailAdress(email))
 			return BadRequest($"Invalid email");
 
-		string credentials = $"{utilisateurDto.Email}:{utilisateurDto.Pass}";
-		// Step 2: Encode the credentials in Base64
-		string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-		string authorizationHeader = $"Basic {base64Credentials}";
-		var modelStateJson = new
-		{
-			valideModelState = ModelState.IsValid,
-			email = utilisateurDto.Email,
-			password = utilisateurDto.Pass
-		};
-		string jsonContent = JsonSerializer.Serialize(modelStateJson);
-		var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7103/api/v1/login")
-		{
-			Headers = { { "Authorization", authorizationHeader } },
-			Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
-		};
-		var response = await _httpClient.SendAsync(requestMessage);
-		if (response.IsSuccessStatusCode == false)
-		{
-			return Unauthorized(new { Message = "Invalid credentials" });
-		}
-		await response.Content.ReadAsStringAsync();
-		var user = await jwtToken.BasicAuthResponseAsync((ModelState.IsValid,utilisateurDto));
+		// string credentials = $"{loginRequest.Email}:{loginRequest.Pass}";
+		// // Step 2: Encode the credentials in Base64
+		// string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+		// string authorizationHeader = $"Basic {base64Credentials}";
+		// using var client = new HttpClient();
+		// client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+		// var bodyContent= new 
+		// {
+		// 	loginRequest.Email,
+		// 	loginRequest.Pass,
+		// 	State = ModelState.IsValid
+		// };
+		// var jsonContent = new StringContent(JsonSerializer.Serialize(bodyContent), Encoding.UTF8, "application/json");
+
+		// var response = await client.PostAsync("https://localhost:7103/api/v1/login", jsonContent);
+		// if (response.IsSuccessStatusCode == false)
+		// {
+		// 	return Unauthorized(new { Message = "Invalid credentials" });
+		// }
+		// await response.Content.ReadAsStringAsync();
+		var user = await jwtToken.BasicAuthResponseAsync((ModelState.IsValid, utilisateurDto));
 		log.LogInformation("Authentication successful");
 		var result = await jwtToken.GetToken(user);
 		if (!result.Response)
