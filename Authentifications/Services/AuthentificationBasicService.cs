@@ -46,27 +46,33 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
 			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
-
 			if (credentials.Length != 2)
 				return AuthenticateResult.Fail("Invalid Authorization header format");
-			Request.Body.Position = 0;
-			using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8,leaveOpen: true))
+
+			var email = credentials[0];
+			var password = credentials[1];
+			log.LogWarning($"Authentication ---------- {email}");
+			log.LogWarning($"Authentication password----------{password}");
+			//Request.EnableBuffering();
+			using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
 			{
 				string jsonBody = await reader.ReadToEndAsync();
-				Request.Body.Position = 0;
+				//Request.Body.Position = 0;
+				if (string.IsNullOrEmpty(jsonBody))
+					return AuthenticateResult.Fail("Empty request body");
+				log.LogWarning($"json----------{jsonBody}");
 				// Désérialiser le JSON pour le manipuler
 				var requestData = JsonSerializer.Deserialize<LoginRequest>(jsonBody);
+
+				log.LogWarning("Authentication ---------- {Email}", requestData?.Email);
 
 				if (requestData == null || string.IsNullOrEmpty(requestData.Email) || string.IsNullOrEmpty(requestData.Pass))
 				{
 					return AuthenticateResult.Fail("Invalid JSON body.");
 				}
-				log.LogWarning("Authentication ----------",requestData.Email);
-				log.LogWarning("Authentication ----------",requestData.Pass);
-				log.LogWarning("Authentication ----------",requestData.State);
+				log.LogWarning("Authentication ----------", requestData.Pass);
+				log.LogWarning("Authentication ----------", requestData.State);
 
-				var email = credentials[0];
-				var password = credentials[1];
 				//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
 				//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
 				// redisToken.GenerateRedisKeyForTokenSession(email, password);
@@ -79,7 +85,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 				}
 				await jwtBearerAuthenticationService.BasicAuthResponseAsync(tupleResult);
 				//return AuthenticateResult.Success();
-				// jwtBearerAuthenticationService.GenerateJwtToken(user);
+				//jwtBearerAuthenticationService.GenerateJwtToken(user);
 				// var token = jwtBearerAuthenticationService.GenerateJwtToken(user);
 				// redisToken.StoreTokenSessionInRedis(token, email);
 				return AuthenticateResult.NoResult();

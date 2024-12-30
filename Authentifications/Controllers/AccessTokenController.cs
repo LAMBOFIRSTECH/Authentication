@@ -5,6 +5,7 @@ using Authentifications.Models;
 using System.Text;
 using Microsoft.OpenApi.Expressions;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -21,7 +22,7 @@ public class AccessTokenController : ControllerBase
 		this.redisCache = redisCache;
 	}
 	[HttpPost("login")]
-	public async Task<ActionResult> Authentificate([FromBody] UtilisateurDto utilisateurDto)
+	public async Task<ActionResult> Authentificate([FromHeader] UtilisateurDto utilisateurDto)
 	{
 		if (!ModelState.IsValid)
 			return BadRequest(ModelState);
@@ -53,13 +54,6 @@ public class AccessTokenController : ControllerBase
 		}
 		await response.Content.ReadAsStringAsync();
 		var user = await jwtToken.BasicAuthResponseAsync((ModelState.IsValid,utilisateurDto));
-
-		// var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(ModelState.IsValid, utilisateurDto.Email, utilisateurDto.Pass);
-		// if (tupleResult.Item1 is false)
-		// {
-		// 	log.LogError("Authentication failed");
-		// 	return Unauthorized($"Authentication failed, email adress or password is incorrect");
-		// }
 		log.LogInformation("Authentication successful");
 		var result = await jwtToken.GetToken(user);
 		if (!result.Response)

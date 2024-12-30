@@ -219,8 +219,19 @@ app.Lifetime.ApplicationStarted.Register(() =>
 	| Enregistrement de middlewares Injection directe	 |
 	+----------------------------------------------------+
 */
+app.Use(async (context, next) =>
+{
+	context.Request.EnableBuffering();
+	using (var memoryStream = new MemoryStream())
+	{
+		await context.Request.Body.CopyToAsync(memoryStream);
+		context.Request.Body.Position = 0;
+	}
+	await next.Invoke();
+});
+
 app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager");
-app.UseMiddleware<ValidationHandlingMiddleware>();
+//app.UseMiddleware<ValidationHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
@@ -247,9 +258,5 @@ app.UseEndpoints(endpoints =>
 			await context.Response.WriteAsync("Version de l'API : 1");
 		});
  });
-app.Use(async (context, next) =>
-{
-   context.Request.EnableBuffering(); // Permet de relire le Request.Body
-   await next.Invoke();
-});
+
 app.Run();
