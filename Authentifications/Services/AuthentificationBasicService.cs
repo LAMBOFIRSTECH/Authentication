@@ -13,15 +13,11 @@ using static Authentifications.Models.UtilisateurDto;
 namespace Authentifications.Services;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-	private readonly JwtBearerAuthenticationService jwtBearerAuthenticationService;
+	
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	private readonly IRedisCacheTokenService redisToken;
 	private readonly IRedisCacheService redisCache;
-
 	public AuthentificationBasicService(
-	IRedisCacheTokenService redisToken,
 	IRedisCacheService redisCache,
-	JwtBearerAuthenticationService jwtBearerAuthenticationService,
 	IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
@@ -29,9 +25,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 	: base(options, logger, encoder, clock)
 	{
-		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.log = log;
-		this.redisToken = redisToken;
 		this.redisCache = redisCache;
 	}
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
