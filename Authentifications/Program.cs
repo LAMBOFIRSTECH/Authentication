@@ -20,11 +20,8 @@ var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 // Conteneur d'enregistrement de dépendances -------------------------------- 
 
-//builder.Services.AddControllers();
-// builder.Services.AddControllers(options =>
-// {
-// 	options.Filters.Add(typeof(ValidateModelStateFilter));
-// });
+builder.Services.AddControllers();
+
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -91,8 +88,8 @@ builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 */
 
 builder.Services.AddScoped<JwtBearerAuthenticationService>();
-builder.Services.AddTransient<AuthentificationBasicService>();
-builder.Services.AddScoped<RequestDelegate>();
+//builder.Services.AddTransient<AuthentificationBasicService>();
+
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
@@ -221,19 +218,10 @@ app.Lifetime.ApplicationStarted.Register(() =>
 	| Enregistrement de middlewares Injection directe	 |
 	+----------------------------------------------------+
 */
-app.Use(async (context, next) =>
-{
-	context.Request.EnableBuffering();
-	using (var memoryStream = new MemoryStream())
-	{
-		await context.Request.Body.CopyToAsync(memoryStream);
-		context.Request.Body.Position = 0;
-	}
-	await next.Invoke();
-});
 
 app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager");
-//app.UseMiddleware<ValidationHandlingMiddleware>();
+app.UseMiddleware<ValidationHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();

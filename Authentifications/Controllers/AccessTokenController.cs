@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using static Authentifications.Models.UtilisateurDto;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 namespace Authentifications.Controllers;
 [Route("api/v1/")]
 public class AccessTokenController : ControllerBase
@@ -30,7 +31,7 @@ public class AccessTokenController : ControllerBase
 		{
 			return Unauthorized("Unauthorized access");
 		}
-		string email = User.Identity.Name!;
+		string email = User.Claims.Where(c => c.Type == ClaimTypes.Email).Select(c => c.Value).FirstOrDefault()!;
 		if (!ModelState.IsValid)
 			return BadRequest(ModelState);
 		if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(utilisateurDto.Pass))
@@ -38,28 +39,8 @@ public class AccessTokenController : ControllerBase
 		if (!utilisateurDto.CheckEmailAdress(email))
 			return BadRequest($"Invalid email");
 
-		// string credentials = $"{loginRequest.Email}:{loginRequest.Pass}";
-		// // Step 2: Encode the credentials in Base64
-		// string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-		// string authorizationHeader = $"Basic {base64Credentials}";
-		// using var client = new HttpClient();
-		// client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
-		// var bodyContent= new 
-		// {
-		// 	loginRequest.Email,
-		// 	loginRequest.Pass,
-		// 	State = ModelState.IsValid
-		// };
-		// var jsonContent = new StringContent(JsonSerializer.Serialize(bodyContent), Encoding.UTF8, "application/json");
 
-		// var response = await client.PostAsync("https://localhost:7103/api/v1/login", jsonContent);
-		// if (response.IsSuccessStatusCode == false)
-		// {
-		// 	return Unauthorized(new { Message = "Invalid credentials" });
-		// }
-		// await response.Content.ReadAsStringAsync();
-		var user = await jwtToken.BasicAuthResponseAsync((ModelState.IsValid, utilisateurDto));
-		log.LogInformation("Authentication successful");
+		var user = await jwtToken.AuthUserDetailsAsync((ModelState.IsValid, utilisateurDto));
 		var result = await jwtToken.GetToken(user);
 		if (!result.Response)
 		{

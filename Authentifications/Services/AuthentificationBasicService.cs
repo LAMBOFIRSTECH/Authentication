@@ -17,23 +17,23 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	private readonly ILogger<JwtBearerAuthenticationService> log;
 	private readonly IRedisCacheTokenService redisToken;
 	private readonly IRedisCacheService redisCache;
-	private readonly RequestDelegate _next;
 
-	public AuthentificationBasicService(IRedisCacheTokenService redisToken, IRedisCacheService redisCache, JwtBearerAuthenticationService jwtBearerAuthenticationService, IOptionsMonitor<AuthenticationSchemeOptions> options,
+	public AuthentificationBasicService(
+	IRedisCacheTokenService redisToken,
+	IRedisCacheService redisCache,
+	JwtBearerAuthenticationService jwtBearerAuthenticationService,
+	IOptionsMonitor<AuthenticationSchemeOptions> options,
 	ILoggerFactory logger,
 	UrlEncoder encoder,
-	ISystemClock clock, ILogger<JwtBearerAuthenticationService> log, RequestDelegate next)
-	
+	ISystemClock clock, ILogger<JwtBearerAuthenticationService> log)
+
 	: base(options, logger, encoder, clock)
 	{
 		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
 		this.log = log;
 		this.redisToken = redisToken;
 		this.redisCache = redisCache;
-		this._next = next;
 	}
-
-
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
 		log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
@@ -45,8 +45,6 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
 			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
 				return AuthenticateResult.Fail("Invalid Authorization header format");
-			// if (Request.ContentType == null || !Request.ContentType.Contains("application/json"))
-			// 	return AuthenticateResult.Fail("Invalid Content-Type. Expected 'application/json'.");
 
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
 			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
@@ -55,47 +53,19 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 			var email = credentials[0];
 			var password = credentials[1];
-			
 
-			if (ValidateCredentials(email, password))
-			{
-				// Créer un ticket d'authentification si les informations sont valides
-				var claims = new List<Claim>
-			{
-				new Claim(ClaimTypes.Email, email) // Le nom de l'utilisateur
-			};
-
-				var identity = new ClaimsIdentity(claims, "Basic");
-				var principal = new ClaimsPrincipal(identity);
-
-				// Ajouter le principal au HttpContext
-				Context.User = principal;
-
-				// Passer au middleware suivant
-				await _next(Context);
-			}
-			else
+			if (!await ValidateCredentials(email, password))
 			{
 				log.LogWarning("Invalid credentials");
 				Context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+				return AuthenticateResult.NoResult();
 			}
+			var claims = new List<Claim> { new Claim(ClaimTypes.Email, email) };
 
-			//Avant meme de générer un token se ressurer qu'il est présent dans redis et qu'il n'a pas été révoqué avant (d'ou la blacklist des sessions de token revoqué dans redis)
-			//On peut aussi ajouter un champ dans la base de données pour savoir si le token est révoqué ou pas
-			// redisToken.GenerateRedisKeyForTokenSession(email, password);
-			// redisToken.StoreTokenSessionInRedis(email);
-			var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(true, email, password);
-			if (tupleResult.Item1 is false)
-			{
-				log.LogError("Authentication failed");
-				return AuthenticateResult.Fail($"Authentication failed, email adress or password is incorrect");
-			}
-			await jwtBearerAuthenticationService.BasicAuthResponseAsync(tupleResult);
-			//return AuthenticateResult.Success();
-			//jwtBearerAuthenticationService.GenerateJwtToken(user);
-			// var token = jwtBearerAuthenticationService.GenerateJwtToken(user);
-			// redisToken.StoreTokenSessionInRedis(token, email);
-			return AuthenticateResult.NoResult();
+			var identity = new ClaimsIdentity(claims, Scheme.Name);
+			var principal = new ClaimsPrincipal(identity);
+			var ticket = new AuthenticationTicket(principal, Scheme.Name);
+			return AuthenticateResult.Success(ticket);
 		}
 		catch (FormatException)
 		{
@@ -106,10 +76,14 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 			return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
 		}
 	}
-	private bool ValidateCredentials(string username, string password)
+	private async Task<bool> ValidateCredentials(string email, string password)
 	{
-		// Validation fictive des informations d'identification
-		// Remplacez cela par une vérification réelle (par exemple, une base de données)
-		return username == "lambo@example.com" && password == "lambo";
+		var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(true, email, password);
+		if (tupleResult.Item1 is false)
+		{
+			log.LogError("Authentication failed, email adress or password is incorrect");
+			return false;
+		}
+		return true;
 	}
 }

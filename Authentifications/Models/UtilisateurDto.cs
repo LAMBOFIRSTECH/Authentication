@@ -14,7 +14,7 @@ public class UtilisateurDto
 	[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public Guid ID { get; set; }
 	[MaxLength(20, ErrorMessage = "Username cannot exceed 20 characters")]
-	public string Nom { get; set; } = string.Empty; // A terme on aura le nom complet de l'utilisateur {Nom + Prenom}
+	public string Nom { get; set; } = string.Empty;
 	[Required]
 	[EmailAddress]
 	public string? Email { get; set; }
@@ -39,11 +39,4 @@ public class UtilisateurDto
 		Match check = Regex.Match(email, regexMatch);
 		return check.Success;
 	}
-}
-
-public class LoginRequest : UtilisateurDto
-{
-	[Required]
-	public bool State { get; set; }
-	public LoginRequest(){}
 }

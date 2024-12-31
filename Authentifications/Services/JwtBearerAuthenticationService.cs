@@ -12,14 +12,14 @@ public class JwtBearerAuthenticationService : IJwtToken
 	private readonly IConfiguration configuration;
 	private RsaSecurityKey rsaSecurityKey;
 	private readonly ILogger<RsaSecurityKey> log;
-
-	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log)
+	private readonly IRedisCacheService redisCache;
+	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log, IRedisCacheService redisCache)
 	{
 		this.configuration = configuration;
 		this.log = log;
+		this.redisCache = redisCache;
 		rsaSecurityKey = GetOrCreateSigningKey();
 	}
-
 	public async Task<TokenResult> GetToken(UtilisateurDto utilisateurDto)
 	{
 		await Task.Delay(500);
@@ -41,30 +41,30 @@ public class JwtBearerAuthenticationService : IJwtToken
 			var publicKey = rsa.ExportRSAPublicKey();
 			string publicKeyPem = Convert.ToBase64String(publicKey);
 			// Stocker la clé publique dans HashiCorp Vault
-			// StorePublicKeyInVault(publicKeyPem);
+			StorePublicKeyInVault(publicKeyPem);
 			// Exporter la clé privée pour la signature
 			return new RsaSecurityKey(rsa.ExportParameters(true));
 		}
 	}
-	// private void StorePublicKeyInVault(string publicKeyPem)
-	// {
-	// 	// Configuration du client HashiCorp Vault
-	// 	var hashiCorpToken = configuration["HashiCorp:VaultToken"];
-	// 	var hashiCorpHttpClient = configuration["HashiCorp:HttpClient"];
-	// 	var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
-	// 	var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
-	// 	var vaultClient = new VaultClient(vaultClientSettings);
+	private void StorePublicKeyInVault(string publicKeyPem)
+	{
+		// Configuration du client HashiCorp Vault
+		var hashiCorpToken = configuration["HashiCorp:VaultToken"];
+		var hashiCorpHttpClient = configuration["HashiCorp:HttpClient:BaseAddress"];
+		var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
+		var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
+		var vaultClient = new VaultClient(vaultClientSettings);
 
-	// 	// Chemin pour stocker la clé publique dans hashicorp
-	// 	var secretPath = "keys/rsa-public";
-	// 	// Stocker la clé publique
-	// 	vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
-	// 	{
-	// 		{ "key", publicKeyPem }
-	// 	}).Wait();
+		// Chemin pour stocker la clé publique dans hashicorp
+		var secretPath = "keys/rsa-public";
+		// Stocker la clé publique
+		vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
+		{
+			{ "key", publicKeyPem }
+		}).Wait();
 
-	// 	log.LogInformation("Clé publique stockée avec succès dans Vault !");
-	// }
+		log.LogInformation("Clé publique stockée avec succès dans Vault !");
+	}
 
 	public string GenerateJwtToken(UtilisateurDto utilisateurDto)
 	{
@@ -93,10 +93,11 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
 	}
-	public async Task<UtilisateurDto> BasicAuthResponseAsync((bool IsValid, UtilisateurDto utilisateurDto) tupleParameter)
+	public async Task<UtilisateurDto> AuthUserDetailsAsync((bool IsValid, UtilisateurDto utilisateurDto) tupleParameter)
 	{
 		await Task.Delay(50);
-		log.LogInformation("Authentication successful", tupleParameter.IsValid);
-		return tupleParameter.utilisateurDto;
+		var Parameter=await redisCache.GetDataFromRedisUsingParamsAsync(tupleParameter.IsValid, tupleParameter.utilisateurDto.Email!, tupleParameter.utilisateurDto.Pass!);
+		log.LogInformation("Authentication successful {Parameter.Item1}", Parameter.Item1);
+		return Parameter.Item2;
 	}
 }
