@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "tHw42BxAW1jJkRLePezwGJnG4ZckmtHx6Vxn68aEOWP0YZk8gkwPm5wAIvdvA5SBmmzId32vje+IJ4j77pXcCg==",
+  "dgSpecHash": "9agH4zZXWVENauRs5XbMa3Nz1ev5VNRcMMGMcL/6J1KfMN4MzXu0XHRe7nU37Ow3sSf9CyJBnTWFXfQuGw64vg==",
   "success": true,
   "projectFilePath": "/home/lambo-ubuntu/Authentication/Authentifications/Authentifications.csproj",
   "expectedPackageFiles": [
@@ -125,8 +125,8 @@
     "/home/lambo-ubuntu/.nuget/packages/system.security.cryptography.x509certificates/4.3.0/system.security.cryptography.x509certificates.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.text.encoding/4.3.0/system.text.encoding.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.text.encoding.extensions/4.3.0/system.text.encoding.extensions.4.3.0.nupkg.sha512",
-    "/home/lambo-ubuntu/.nuget/packages/system.text.encodings.web/6.0.0/system.text.encodings.web.6.0.0.nupkg.sha512",
-    "/home/lambo-ubuntu/.nuget/packages/system.text.json/6.0.0/system.text.json.6.0.0.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/system.text.encodings.web/8.0.0/system.text.encodings.web.8.0.0.nupkg.sha512",
+    "/home/lambo-ubuntu/.nuget/packages/system.text.json/8.0.4/system.text.json.8.0.4.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.text.regularexpressions/4.3.0/system.text.regularexpressions.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.threading/4.3.0/system.threading.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg.sha512",
@@ -134,7 +134,7 @@
     "/home/lambo-ubuntu/.nuget/packages/system.threading.timer/4.3.0/system.threading.timer.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.xml.readerwriter/4.3.0/system.xml.readerwriter.4.3.0.nupkg.sha512",
     "/home/lambo-ubuntu/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512",
-    "/home/lambo-ubuntu/.nuget/packages/vaultsharp/1.12.2/vaultsharp.1.12.2.nupkg.sha512"
+    "/home/lambo-ubuntu/.nuget/packages/vaultsharp/1.17.5/vaultsharp.1.17.5.nupkg.sha512"
   ],
   "logs": []
 }

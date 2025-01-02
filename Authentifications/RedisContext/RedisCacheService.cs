@@ -16,10 +16,11 @@ public class RedisCacheService : IRedisCacheService
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
 	private readonly HttpClient httpClient = null!;
-	private readonly HttpResponseMessage response = null!; //Plustard
+	private readonly HttpResponseMessage response = null!; 
 	private readonly string baseUrl = string.Empty;
 	private readonly string cacheKey = string.Empty;
 	private static DateTime _lastExecution = DateTime.MinValue;
+
 
 	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
 	{
@@ -90,15 +91,15 @@ public class RedisCacheService : IRedisCacheService
 		}
 		return find;
 	}
-	public async Task<(bool, UtilisateurDto)> GetDataFromRedisUsingParamsAsync(bool condition, string email, string password)
+	public async Task<(bool, UtilisateurDto)> GetBooleanAndUserDataFromRedisUsingParamsAsync(bool condition, string email, string password)
 	{
 		if (condition)
 		{
 			var utilisateurs = await RetrieveData_OnRedisUsingKeyAsync();
 			foreach (var user in utilisateurs)
 			{
-				var result = user.CheckHashPassword(password);
-				if (result.Equals(true) && user.Email!.Equals(email))
+				var checkHashPass = user.CheckHashPassword(password);
+				if (checkHashPass.Equals(true) && user.Email!.Equals(email))
 				{
 					return (true, user);		
 				}

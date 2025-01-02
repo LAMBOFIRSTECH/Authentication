@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Authentifications.Interfaces;
 using Authentifications.Models;
 using Authentifications.Services;
@@ -13,7 +14,7 @@ using static Authentifications.Models.UtilisateurDto;
 namespace Authentifications.Services;
 public class AuthentificationBasicService : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-	
+
 	private readonly ILogger<JwtBearerAuthenticationService> log;
 	private readonly IRedisCacheService redisCache;
 	public AuthentificationBasicService(
@@ -47,6 +48,12 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 
 			var email = credentials[0];
 			var password = credentials[1];
+			Context.Items["password"] = password;
+			Context.Items["email"] = email;
+			string regexMatch = "(?<alpha>\\w+)@(?<mailing>[aA-zZ]+)\\.(?<domaine>[aA-zZ]+$)";
+			Match check = Regex.Match(email, regexMatch);
+			if (!check.Success)
+				return AuthenticateResult.Fail($"The following email address is invalid => {email}");
 
 			if (!await ValidateCredentials(email, password))
 			{
@@ -72,7 +79,7 @@ public class AuthentificationBasicService : AuthenticationHandler<Authentication
 	}
 	private async Task<bool> ValidateCredentials(string email, string password)
 	{
-		var tupleResult = await redisCache.GetDataFromRedisUsingParamsAsync(true, email, password);
+		var tupleResult = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(true, email, password);
 		if (tupleResult.Item1 is false)
 		{
 			log.LogError("Authentication failed, email adress or password is incorrect");

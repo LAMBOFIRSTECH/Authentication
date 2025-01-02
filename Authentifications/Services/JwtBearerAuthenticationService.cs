@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using Authentifications.Interfaces;
 using Authentifications.Models;
 using Microsoft.IdentityModel.Tokens;
@@ -9,8 +10,8 @@ using VaultSharp.V1.AuthMethods.Token;
 namespace Authentifications.Services;
 public class JwtBearerAuthenticationService : IJwtToken
 {
-	private readonly IConfiguration configuration;
 	private RsaSecurityKey rsaSecurityKey;
+	private readonly IConfiguration configuration;
 	private readonly ILogger<RsaSecurityKey> log;
 	private readonly IRedisCacheService redisCache;
 	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log, IRedisCacheService redisCache)
@@ -33,39 +34,62 @@ public class JwtBearerAuthenticationService : IJwtToken
 	{
 		if (rsaSecurityKey != null)
 			return rsaSecurityKey;
-
 		// Génération de la clé RSA
-		using (var rsa = RSA.Create(2048))
+		var rsa = RSA.Create(2048);
+		// Exporter la clé publique en Base64 pour Vault
+		var privateKey = ConvertToPem(rsa.ExportRSAPrivateKey(), "RSA PRIVATE KEY");
+		var publicKey = ConvertToPem(rsa.ExportRSAPublicKey(), "RSA PUBLIC KEY");
+
+		// Stocker la clé publique dans HashiCorp Vault
+		StorePublicKeyInVault(publicKey);
+		// Exporter la clé privée pour la signature
+		rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(true));
+		return rsaSecurityKey;
+	}
+	private string ConvertToPem(byte[] keyBytes, string keyType)
+	{
+		var base64Key = Convert.ToBase64String(keyBytes);
+		var sb = new StringBuilder();
+		sb.AppendLine($"-----BEGIN {keyType}-----");
+
+		int lineLength = 64;
+		for (int i = 0; i < base64Key.Length; i += lineLength)
 		{
-			// Exporter la clé publique en Base64 pour Vault
-			var publicKey = rsa.ExportRSAPublicKey();
-			string publicKeyPem = Convert.ToBase64String(publicKey);
-			// Stocker la clé publique dans HashiCorp Vault
-			StorePublicKeyInVault(publicKeyPem);
-			// Exporter la clé privée pour la signature
-			return new RsaSecurityKey(rsa.ExportParameters(true));
+			sb.AppendLine(base64Key.Substring(i, Math.Min(lineLength, base64Key.Length - i)));
 		}
+
+		sb.AppendLine($"-----END {keyType}-----");
+		return sb.ToString();
 	}
 	private void StorePublicKeyInVault(string publicKeyPem)
 	{
 		// Configuration du client HashiCorp Vault
 		var hashiCorpToken = configuration["HashiCorp:VaultToken"];
 		var hashiCorpHttpClient = configuration["HashiCorp:HttpClient:BaseAddress"];
+		if (string.IsNullOrEmpty(hashiCorpToken) || string.IsNullOrEmpty(hashiCorpHttpClient))
+		{
+			log.LogWarning("La configuration de HashiCorp Vault est manquante ou invalide.");
+			throw new InvalidOperationException("La configuration de HashiCorp Vault est manquante ou invalide.");
+		}
 		var authMethod = new TokenAuthMethodInfo(hashiCorpToken);
 		var vaultClientSettings = new VaultClientSettings($"{hashiCorpHttpClient}", authMethod);
 		var vaultClient = new VaultClient(vaultClientSettings);
-
-		// Chemin pour stocker la clé publique dans hashicorp
-		var secretPath = "keys/rsa-public";
-		// Stocker la clé publique
-		vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
+		try
 		{
-			{ "key", publicKeyPem }
+			// Chemin pour stocker la clé publique dans hashicorp
+			var secretPath = configuration["HashiCorp:SecretsPath"];
+			vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
+		{
+			{ "authenticationPublicKey", publicKeyPem }
 		}).Wait();
 
-		log.LogInformation("Clé publique stockée avec succès dans Vault !");
+			log.LogInformation("Clé publique stockée avec succès dans Vault !");
+		}
+		catch (Exception ex)
+		{
+			log.LogError($"Erreur lors du stockage de la clé publique dans Vault : {ex.Message}");
+		}
 	}
-
 	public string GenerateJwtToken(UtilisateurDto utilisateurDto)
 	{
 		var tokenHandler = new JwtSecurityTokenHandler();
@@ -80,9 +104,9 @@ public class JwtBearerAuthenticationService : IJwtToken
 				}
 			),
 			Expires = DateTime.UtcNow.AddHours(1),
-			SigningCredentials = new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha512),
+			SigningCredentials = new SigningCredentials(GetOrCreateSigningKey(), SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
-			Audience = "https://192.168.153.131:7250" // Primary audience
+			Audience = "https://192.168.153.131:7250"
 		};
 		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500", "https://localhost:7082", "https://audience1.com" }; // Notre API et potentiellement le broker MQ
 		tokenDescriptor.AdditionalHeaderClaims = new Dictionary<string, object>
@@ -93,10 +117,10 @@ public class JwtBearerAuthenticationService : IJwtToken
 		var token = tokenHandler.WriteToken(tokenCreation);
 		return token;
 	}
-	public async Task<UtilisateurDto> AuthUserDetailsAsync((bool IsValid, UtilisateurDto utilisateurDto) tupleParameter)
+	public async Task<UtilisateurDto> AuthUserDetailsAsync((bool IsValid, string email, string password) tupleParameter)
 	{
 		await Task.Delay(50);
-		var Parameter=await redisCache.GetDataFromRedisUsingParamsAsync(tupleParameter.IsValid, tupleParameter.utilisateurDto.Email!, tupleParameter.utilisateurDto.Pass!);
+		var Parameter = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(tupleParameter.IsValid, tupleParameter.email!, tupleParameter.password!);
 		log.LogInformation("Authentication successful {Parameter.Item1}", Parameter.Item1);
 		return Parameter.Item2;
 	}

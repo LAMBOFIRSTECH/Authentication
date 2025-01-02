@@ -22,7 +22,7 @@
           "Newtonsoft.Json": "13.0.3",
           "StackExchange.Redis": "2.8.22",
           "Swashbuckle.AspNetCore": "6.5.0",
-          "VaultSharp": "1.12.2",
+          "VaultSharp": "1.17.5",
           "coverlet.collector": "6.0.2"
         },
         "runtime": {
@@ -187,7 +187,7 @@
       "Microsoft.AspNetCore.Http.Abstractions/2.1.1": {
         "dependencies": {
           "Microsoft.AspNetCore.Http.Features": "2.1.1",
-          "System.Text.Encodings.Web": "6.0.0"
+          "System.Text.Encodings.Web": "8.0.0"
         }
       },
       "Microsoft.AspNetCore.Http.Features/2.1.1": {
@@ -290,7 +290,7 @@
           "Microsoft.Extensions.Configuration.Abstractions": "6.0.0",
           "Microsoft.Extensions.Configuration.FileExtensions": "6.0.0",
           "Microsoft.Extensions.FileProviders.Abstractions": "6.0.0",
-          "System.Text.Json": "6.0.0"
+          "System.Text.Json": "8.0.4"
         }
       },
       "Microsoft.Extensions.Configuration.UserSecrets/6.0.0": {
@@ -1124,15 +1124,35 @@
           "System.Text.Encoding": "4.3.0"
         }
       },
-      "System.Text.Encodings.Web/6.0.0": {
+      "System.Text.Encodings.Web/8.0.0": {
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/System.Text.Encodings.Web.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/browser/lib/net6.0/System.Text.Encodings.Web.dll": {
+            "rid": "browser",
+            "assetType": "runtime",
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
         }
       },
-      "System.Text.Json/6.0.0": {
+      "System.Text.Json/8.0.4": {
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.0.0",
-          "System.Text.Encodings.Web": "6.0.0"
+          "System.Text.Encodings.Web": "8.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/System.Text.Json.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.724.31311"
+          }
         }
       },
       "System.Text.RegularExpressions/4.3.0": {
@@ -1196,14 +1216,14 @@
           "System.Xml.ReaderWriter": "4.3.0"
         }
       },
-      "VaultSharp/1.12.2": {
+      "VaultSharp/1.17.5": {
         "dependencies": {
-          "Newtonsoft.Json": "13.0.3"
+          "System.Text.Json": "8.0.4"
         },
         "runtime": {
           "lib/net6.0/VaultSharp.dll": {
-            "assemblyVersion": "1.12.2.0",
-            "fileVersion": "1.12.2.0"
+            "assemblyVersion": "1.17.5.0",
+            "fileVersion": "1.17.5.0"
           }
         }
       }
@@ -2062,19 +2082,19 @@
       "path": "system.text.encoding.extensions/4.3.0",
       "hashPath": "system.text.encoding.extensions.4.3.0.nupkg.sha512"
     },
-    "System.Text.Encodings.Web/6.0.0": {
+    "System.Text.Encodings.Web/8.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-Vg8eB5Tawm1IFqj4TVK1czJX89rhFxJo9ELqc/Eiq0eXy13RK00eubyU6TJE6y+GQXjyV5gSfiewDUZjQgSE0w==",
-      "path": "system.text.encodings.web/6.0.0",
-      "hashPath": "system.text.encodings.web.6.0.0.nupkg.sha512"
+      "sha512": "sha512-yev/k9GHAEGx2Rg3/tU6MQh4HGBXJs70y7j1LaM1i/ER9po+6nnQ6RRqTJn1E7Xu0fbIFK80Nh5EoODxrbxwBQ==",
+      "path": "system.text.encodings.web/8.0.0",
+      "hashPath": "system.text.encodings.web.8.0.0.nupkg.sha512"
     },
-    "System.Text.Json/6.0.0": {
+    "System.Text.Json/8.0.4": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-zaJsHfESQvJ11vbXnNlkrR46IaMULk/gHxYsJphzSF+07kTjPHv+Oc14w6QEOfo3Q4hqLJgStUaYB9DBl0TmWg==",
-      "path": "system.text.json/6.0.0",
-      "hashPath": "system.text.json.6.0.0.nupkg.sha512"
+      "sha512": "sha512-bAkhgDJ88XTsqczoxEMliSrpijKZHhbJQldhAmObj/RbrN3sU5dcokuXmWJWsdQAhiMJ9bTayWsL1C9fbbCRhw==",
+      "path": "system.text.json/8.0.4",
+      "hashPath": "system.text.json.8.0.4.nupkg.sha512"
     },
     "System.Text.RegularExpressions/4.3.0": {
       "type": "package",
@@ -2125,12 +2145,12 @@
       "path": "system.xml.xdocument/4.3.0",
       "hashPath": "system.xml.xdocument.4.3.0.nupkg.sha512"
     },
-    "VaultSharp/1.12.2": {
+    "VaultSharp/1.17.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-1pC72c2vTeqf/cmM7ppgXAhFw11IdDsh9dt4M33X88ZxLGh2gvTvJBH7SYchAGgDOzdszd1SyItHpge07DEFtg==",
-      "path": "vaultsharp/1.12.2",
-      "hashPath": "vaultsharp.1.12.2.nupkg.sha512"
+      "sha512": "sha512-O7nSIR2Y0deisO3qt40fHvXxv6Vv6Wxs+1SmWE975rZ8wUphg0URGUMptwKXOa4C2ItQ84qMi0loXjVHFhrDGQ==",
+      "path": "vaultsharp/1.17.5",
+      "hashPath": "vaultsharp.1.17.5.nupkg.sha512"
     }
   }
 }
