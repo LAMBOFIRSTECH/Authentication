@@ -16,8 +16,7 @@ public class RedisCacheService : IRedisCacheService
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
 	private readonly HttpClient httpClient = null!;
-	private readonly HttpResponseMessage response = null!; 
-	private readonly string baseUrl = string.Empty;
+    private readonly string baseUrl = string.Empty;
 	private readonly string cacheKey = string.Empty;
 	private static DateTime _lastExecution = DateTime.MinValue;
 
@@ -68,14 +67,12 @@ public class RedisCacheService : IRedisCacheService
 		string salt = "RandomUniqueSalt";
 		string email = "example@example.com";
 		string password = "password$1";
-		using (SHA256 sha256 = SHA256.Create())
-		{
-			string combined = $"{email}:{password}:{salt}";
-			byte[] bytes = Encoding.UTF8.GetBytes(combined);
-			byte[] hashBytes = sha256.ComputeHash(bytes);
-			return Convert.ToHexString(hashBytes);
-		}
-	}
+        using SHA256 sha256 = SHA256.Create();
+        string combined = $"{email}:{password}:{salt}";
+        byte[] bytes = Encoding.UTF8.GetBytes(combined);
+        byte[] hashBytes = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hashBytes);
+    }
 	public async Task<bool> GetDataFromRedisByFilterAsync(string email, string password)
 	{
 		bool find = false;
@@ -138,7 +135,7 @@ public class RedisCacheService : IRedisCacheService
 		}
 		catch (HttpRequestException ex) when (ex.InnerException is SocketException socketEx)
 		{
-			logger.LogError($"Socket's problems check if TasksManagement service is UP: {socketEx.Message}");
+			logger.LogError("Socket's problems check if TasksManagement service is UP: {socketEx.Message}",socketEx.Message);
 			throw new Exception("The service is unavailable. Please retry soon.", ex);
 		}
 		catch (Exception ex)

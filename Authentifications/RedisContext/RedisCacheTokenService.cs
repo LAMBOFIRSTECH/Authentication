@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Authentifications.Interfaces;
 using Authentifications.Models;
-using Authentifications.Services;
+using Authentifications.Middlewares;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
 namespace Authentifications.RedisContext;
@@ -12,47 +12,44 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 	private readonly IDistributedCache _cache;
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
-	private JwtBearerAuthenticationService jwtBearerAuthenticationService;
+	private readonly JwtBearerAuthenticationMiddleware JwtBearerAuthenticationMiddleware;
 	private readonly string cacheKey = string.Empty;
 	private readonly string email = string.Empty;
 	private readonly string password = string.Empty;
-	public RedisCacheTokenService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, JwtBearerAuthenticationService jwtBearerAuthenticationService)
+	public RedisCacheTokenService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, JwtBearerAuthenticationMiddleware JwtBearerAuthenticationMiddleware)
 	{
 		_cache = cache;
 		this.configuration = configuration;
 		this.logger = logger;
-		this.jwtBearerAuthenticationService = jwtBearerAuthenticationService;
+		this.JwtBearerAuthenticationMiddleware = JwtBearerAuthenticationMiddleware;
 		cacheKey = GenerateRedisKeyForTokenSession(email, password);
 	}
 	public bool IsTokenExpired(string token) //hangfire on check si le token est expiré dans redis
 	{
 		var tokenHandler = new JwtSecurityTokenHandler();
-		var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
-		if (jwtToken == null)
-			return true;
+        if (tokenHandler.ReadToken(token) is not JwtSecurityToken jwtToken)
+            return true;
 
-		var expirationDate = jwtToken.ValidTo;
+        var expirationDate = jwtToken.ValidTo;
 		return expirationDate < DateTime.UtcNow;
 	}
 	// public string RefreshToken(string token, string email)
 	// {
 	// 	if (IsTokenExpired(token))
 	// 	{
-	// 		return jwtBearerAuthenticationService.GenerateJwtToken(email);
+	// 		return JwtBearerAuthenticationMiddleware.GenerateJwtToken(email);
 	// 	}
 	// 	return token;
 	// }
 	public string GenerateRedisKeyForTokenSession(string email, string password)
 	{
 		string salt = "RandomUniqueSalt";
-		using (SHA256 sha256 = SHA256.Create())
-		{
-			string combined = $"{email}:{password}:{salt}";
-			byte[] bytes = Encoding.UTF8.GetBytes(combined);
-			byte[] hashBytes = sha256.ComputeHash(bytes);
-			return Convert.ToHexString(hashBytes);
-		}
-	}
+        using SHA256 sha256 = SHA256.Create();
+        string combined = $"{email}:{password}:{salt}";
+        byte[] bytes = Encoding.UTF8.GetBytes(combined);
+        byte[] hashBytes = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hashBytes);
+    }
 	// public async Task<bool> GetTokenSessionFromRedisByFilterAsync(string email, string password)
 	// {
 	// 	bool find = false;
@@ -81,8 +78,8 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 	}
 	public void StoreTokenSessionInRedis(string token, string email)
 	{
-		Dictionary<string, object> jsonObject = new Dictionary<string, object>
-		{
+		Dictionary<string, object> jsonObject = new()
+        {
 			{ "RedisTokenId", new Guid() },
 			{ "Email", email },
 			{ "Token", token }

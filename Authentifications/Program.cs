@@ -5,7 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 using Authentifications.Interfaces;
 using Authentifications.Middlewares;
 using Authentifications.RedisContext;
-using Authentifications.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
@@ -13,7 +12,6 @@ using StackExchange.Redis;
 using Hangfire;
 using Hangfire.Redis.StackExchange;
 using Hangfire.Dashboard.BasicAuthorization;
-using Hangfire.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -77,7 +75,7 @@ builder.Logging.AddConsole();
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
 	+----------------------------------------------------------------------+
 */
-builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
+builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationMiddleware>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 
@@ -87,8 +85,8 @@ builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 	+----------------------------------------------------+
 */
 
-builder.Services.AddScoped<JwtBearerAuthenticationService>();
-//builder.Services.AddTransient<AuthentificationBasicService>();
+builder.Services.AddScoped<JwtBearerAuthenticationMiddleware>();
+builder.Services.AddTransient<AuthentificationBasicMiddleware>();
 
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
@@ -96,7 +94,7 @@ builder.Services.AddLogging();
 builder.Services.AddAuthorization();
 
 builder.Services.AddAuthentication("BasicAuthentication")
-	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicService>("BasicAuthentication", options => { });
+	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicMiddleware>("BasicAuthentication", options => { });
 var Config = builder.Configuration.GetSection("Redis");
 var clientCertificate = new X509Certificate2(
 	Config["Certificate:Redis-pfx"],
@@ -125,7 +123,7 @@ options.CertificateValidation += (sender, certificate, chain, sslPolicyErrors) =
 		return true;
 
 	// Accepter uniquement les erreurs liées à une CA auto-signée
-	if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain.ChainElements.Count > 1)
+	if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors && chain!.ChainElements.Count > 1)
 	{
 		// Vérifiez si le certificat racine est Redis-CA
 		var rootCert = chain.ChainElements[^1].Certificate;
@@ -154,14 +152,14 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
 	catch (Exception ex)
 	{
 		var logger = provider.GetRequiredService<ILogger<Program>>();
-		logger.LogCritical("Error connecting to Redis: {0}", ex.Message);
+		logger.LogCritical("Error connecting to Redis: {ex.Message}", ex.Message);
 		throw;
 	};
 });
 
-builder.Services.AddHangfire(config =>
+builder.Services.AddHangfire((serviceProvider, config) =>
 {
-	var multiplexer = builder.Services.BuildServiceProvider().GetRequiredService<IConnectionMultiplexer>();
+	var multiplexer = serviceProvider.GetRequiredService<IConnectionMultiplexer>();
 	config.UseRedisStorage(multiplexer);
 });
 

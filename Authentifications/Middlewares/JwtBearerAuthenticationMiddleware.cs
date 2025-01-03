@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,14 +8,14 @@ using Authentifications.Models;
 using Microsoft.IdentityModel.Tokens;
 using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
-namespace Authentifications.Services;
-public class JwtBearerAuthenticationService : IJwtToken
+namespace Authentifications.Middlewares;
+public class JwtBearerAuthenticationMiddleware : IJwtToken
 {
 	private RsaSecurityKey rsaSecurityKey;
 	private readonly IConfiguration configuration;
 	private readonly ILogger<RsaSecurityKey> log;
 	private readonly IRedisCacheService redisCache;
-	public JwtBearerAuthenticationService(IConfiguration configuration, ILogger<RsaSecurityKey> log, IRedisCacheService redisCache)
+	public JwtBearerAuthenticationMiddleware(IConfiguration configuration, ILogger<RsaSecurityKey> log, IRedisCacheService redisCache)
 	{
 		this.configuration = configuration;
 		this.log = log;
@@ -36,9 +37,9 @@ public class JwtBearerAuthenticationService : IJwtToken
 			return rsaSecurityKey;
 		// Génération de la clé RSA
 		var rsa = RSA.Create(2048);
-		// Exporter la clé publique en Base64 pour Vault
-		var privateKey = ConvertToPem(rsa.ExportRSAPrivateKey(), "RSA PRIVATE KEY");
-		var publicKey = ConvertToPem(rsa.ExportRSAPublicKey(), "RSA PUBLIC KEY");
+        // Exporter la clé publique en Base64 pour Vault
+        _ = ConvertToPem(rsa.ExportRSAPrivateKey(), "RSA PRIVATE KEY");
+        var publicKey = ConvertToPem(rsa.ExportRSAPublicKey(), "RSA PUBLIC KEY");
 
 		// Stocker la clé publique dans HashiCorp Vault
 		StorePublicKeyInVault(publicKey);
@@ -46,7 +47,7 @@ public class JwtBearerAuthenticationService : IJwtToken
 		rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(true));
 		return rsaSecurityKey;
 	}
-	private string ConvertToPem(byte[] keyBytes, string keyType)
+	private static string ConvertToPem(byte[] keyBytes, string keyType)
 	{
 		var base64Key = Convert.ToBase64String(keyBytes);
 		var sb = new StringBuilder();
@@ -85,10 +86,14 @@ public class JwtBearerAuthenticationService : IJwtToken
 
 			log.LogInformation("Clé publique stockée avec succès dans Vault !");
 		}
-		catch (Exception ex)
+
+		catch (Exception ex) when (ex.InnerException is SocketException socket)
 		{
-			log.LogError($"Erreur lors du stockage de la clé publique dans Vault : {ex.Message}");
+			log.LogError($"Socket's problems check if TasksManagement service is UP: {socket.Message}");
+			throw new Exception("The service is unavailable. Please retry soon.", ex);
+
 		}
+
 	}
 	public string GenerateJwtToken(UtilisateurDto utilisateurDto)
 	{
