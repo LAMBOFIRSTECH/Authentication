@@ -34,16 +34,16 @@ public class AccessTokenController : ControllerBase
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 
-	[HttpGet("users")]
-	public async Task<ActionResult> Get()
-	{
-		string email = "lambo@example.com";
-		string password = "lambo";
-		var result = await redisCache.GetDataFromRedisByFilterAsync(email, password);
-		if (result is false)
-		{
-			return NotFound($"Not found email {email}");
-		}
-		return Ok("user found");
-	}
+	// [HttpGet("users")]
+	// public async Task<ActionResult> Get()
+	// {
+	// 	string email = "lambo@example.com";
+	// 	string password = "lambo";
+	// 	var result = await redisCache.GetDataFromRedisByFilterAsync(email, password);
+	// 	if (result is false)
+	// 	{
+	// 		return NotFound($"Not found email {email}");
+	// 	}
+	// 	return Ok("user found");
+	// }
 }

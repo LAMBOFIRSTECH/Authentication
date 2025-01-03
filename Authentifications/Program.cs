@@ -172,8 +172,6 @@ builder.Services.AddHangfireServer(options =>
 
 });
 
-
-
 var app = builder.Build();
 // Ajouter le tableau de bord et le serveur Hangfire
 var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
@@ -196,7 +194,6 @@ app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardO
 			})
 	}
 });
-
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

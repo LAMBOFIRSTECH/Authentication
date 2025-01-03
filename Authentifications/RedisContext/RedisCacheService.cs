@@ -6,10 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
 using System.Net.Sockets;
 using Authentifications.Interfaces;
-using Hangfire;
-using Hangfire.Redis.StackExchange;
 namespace Authentifications.RedisContext;
-
 public class RedisCacheService : IRedisCacheService
 {
 	private readonly IDistributedCache _cache;
@@ -19,7 +16,6 @@ public class RedisCacheService : IRedisCacheService
     private readonly string baseUrl = string.Empty;
 	private readonly string cacheKey = string.Empty;
 	private static DateTime _lastExecution = DateTime.MinValue;
-
 
 	public RedisCacheService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger)
 	{
@@ -163,7 +159,7 @@ public class RedisCacheService : IRedisCacheService
 			{
 				logger.LogError("Failed to Validate data between Redis and External API Service. Erreur : {Message}", ex.Message);
 				logger.LogWarning("Utilisation des données de Redis.");
-				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!; // Normal comme il n'a pas pu valider la data avec l'api externe on utilise celle de redis
+				return JsonConvert.DeserializeObject<HashSet<UtilisateurDto>>(cachedData)!;
 			}
 		}
 		logger.LogInformation("Aucune données présentes dans le cache Redis.");

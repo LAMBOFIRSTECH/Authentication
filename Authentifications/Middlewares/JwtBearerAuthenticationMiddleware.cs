@@ -37,11 +37,9 @@ public class JwtBearerAuthenticationMiddleware : IJwtToken
 			return rsaSecurityKey;
 		// Génération de la clé RSA
 		var rsa = RSA.Create(2048);
-        // Exporter la clé publique en Base64 pour Vault
-        _ = ConvertToPem(rsa.ExportRSAPrivateKey(), "RSA PRIVATE KEY");
-        var publicKey = ConvertToPem(rsa.ExportRSAPublicKey(), "RSA PUBLIC KEY");
-
-		// Stocker la clé publique dans HashiCorp Vault
+		// Exporter la clé publique en Base64 pour Vault
+		_ = ConvertToPem(rsa.ExportRSAPrivateKey(), "RSA PRIVATE KEY");
+		var publicKey = ConvertToPem(rsa.ExportRSAPublicKey(), "RSA PUBLIC KEY");
 		StorePublicKeyInVault(publicKey);
 		// Exporter la clé privée pour la signature
 		rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(true));
@@ -52,13 +50,11 @@ public class JwtBearerAuthenticationMiddleware : IJwtToken
 		var base64Key = Convert.ToBase64String(keyBytes);
 		var sb = new StringBuilder();
 		sb.AppendLine($"-----BEGIN {keyType}-----");
-
 		int lineLength = 64;
 		for (int i = 0; i < base64Key.Length; i += lineLength)
 		{
 			sb.AppendLine(base64Key.Substring(i, Math.Min(lineLength, base64Key.Length - i)));
 		}
-
 		sb.AppendLine($"-----END {keyType}-----");
 		return sb.ToString();
 	}
@@ -77,7 +73,6 @@ public class JwtBearerAuthenticationMiddleware : IJwtToken
 		var vaultClient = new VaultClient(vaultClientSettings);
 		try
 		{
-			// Chemin pour stocker la clé publique dans hashicorp
 			var secretPath = configuration["HashiCorp:SecretsPath"];
 			vaultClient.V1.Secrets.KeyValue.V2.WriteSecretAsync(secretPath, new Dictionary<string, object>
 		{
@@ -86,18 +81,16 @@ public class JwtBearerAuthenticationMiddleware : IJwtToken
 
 			log.LogInformation("Clé publique stockée avec succès dans Vault !");
 		}
-
 		catch (Exception ex) when (ex.InnerException is SocketException socket)
 		{
 			log.LogError($"Socket's problems check if TasksManagement service is UP: {socket.Message}");
 			throw new Exception("The service is unavailable. Please retry soon.", ex);
-
 		}
-
 	}
 	public string GenerateJwtToken(UtilisateurDto utilisateurDto)
 	{
 		var tokenHandler = new JwtSecurityTokenHandler();
+		var additionalAudiences = new[] {"https://localhost:7082", "https://audience2.com", "https://localhost:9500", "https://192.168.153.131:7250", "https://audience1.com" }; 
 		var tokenDescriptor = new SecurityTokenDescriptor
 		{
 			Subject = new ClaimsIdentity(new[] {
@@ -111,10 +104,9 @@ public class JwtBearerAuthenticationMiddleware : IJwtToken
 			Expires = DateTime.UtcNow.AddHours(1),
 			SigningCredentials = new SigningCredentials(GetOrCreateSigningKey(), SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
-			Audience = "https://192.168.153.131:7250"
+			Audience = null
 		};
-		var additionalAudiences = new[] { "https://audience2.com", "https://localhost:9500", "https://localhost:7082", "https://audience1.com" }; // Notre API et potentiellement le broker MQ
-		tokenDescriptor.AdditionalHeaderClaims = new Dictionary<string, object>
+		tokenDescriptor.Claims = new Dictionary<string, object>
 		{
 			{ JwtRegisteredClaimNames.Aud, additionalAudiences }
 		};
