@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Authentifications</name>
+    </assembly>
+    <members>
+        <member name="T:Authentifications.Models.TokenResult">
+            <summary>
+            Gestion de la reponse du token JWT.
+            </summary>
+        </member>
+        <member name="P:Authentifications.Models.UtilisateurDto.ID">
+            <summary>
+            Représente l'identifiant unique d'un utilisateur.
+            </summary>
+        </member>
+    </members>
+</doc>

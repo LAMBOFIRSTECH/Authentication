@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Authentifications.Middlewares;
 using Authentifications.Interfaces;
 using Microsoft.AspNetCore.Authentication;
-using System;
 namespace Authentifications.Controllers;
 [Route("v1/")]
 public class AccessTokenController : ControllerBase
@@ -19,23 +18,21 @@ public class AccessTokenController : ControllerBase
 	[HttpPost("login")]
 	public async Task<ActionResult> Authentificate()
 	{
-		var scheme = await HttpContext.AuthenticateAsync("Basic");
-		var options = new RemoteAuthenticationOptions();
+		// var scheme = await HttpContext.AuthenticateAsync("Basic");
+		// var options = new RemoteAuthenticationOptions();
 		var ticket = new AuthenticationTicket(User, "Basic");
-		TicketReceivedContext ticketReceivedContext = new(HttpContext, new AuthenticationScheme("Basic", "Basic", typeof(AuthentificationBasicMiddleware)), options, ticket);
-		ticketReceivedContext.Success();
-		ticket.Properties.Items["email"] = HttpContext.Items["email"] as string;
-		ticket.Properties.Items["password"] = HttpContext.Items["password"] as string;
+		//TicketReceivedContext ticketReceivedContext = new(HttpContext, new AuthenticationScheme("Basic", "Basic", typeof(AuthentificationBasicMiddleware)), options, ticket);
 		
-		if (!User.Identity!.IsAuthenticated) 
+
+		var email = ticket.Properties.Items["email"] = HttpContext.Items["email"] as string;
+		var password = ticket.Properties.Items["password"] = HttpContext.Items["password"] as string;
+		if (!User.Identity!.IsAuthenticated)
 		{
 			return Unauthorized("Unauthorized access");
 		}
-		var email = HttpContext.Items["email"] as string;
-		var password = HttpContext.Items["password"] as string;
 		if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-			return BadRequest("Email or password is missing.");	
-		var user = await jwtToken.AuthUserDetailsAsync((User.Identity!.IsAuthenticated, email,password));
+			return BadRequest("Email or password is missing.");
+		var user = await jwtToken.AuthUserDetailsAsync((User.Identity!.IsAuthenticated, email, password));
 		var result = await jwtToken.GetToken(user);
 		if (!result.Response)
 		{
