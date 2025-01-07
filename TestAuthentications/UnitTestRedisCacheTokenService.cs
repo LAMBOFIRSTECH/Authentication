@@ -8,7 +8,22 @@ namespace TestAuthentications;
 public class UnitTestRedisCacheTokenService
 {
     [Fact]
-    public void Test1()
+    public void IsTokenExpired()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void RefreshToken()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void GenerateRedisKeyForTokenSession()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void StoreTokenSessionInRedis()
     {
         Assert.True(true);
     }

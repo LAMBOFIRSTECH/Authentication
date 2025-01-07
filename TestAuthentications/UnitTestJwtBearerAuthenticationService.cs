@@ -3,15 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-
 namespace TestAuthentications;
-public class UnitTestJwtBearerAuthenticationMiddleware
+public class UnitTestJwtBearerAuthenticationService
 {
     [Fact]
-    public void Test1()
+    public void GetToken()
     {
         Assert.True(true);
     }
+    [Fact]
+    public void GetOrCreateSigningKey()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void ConvertToPem()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void StorePublicKeyInVault()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void GenerateJwtToken()
+    {
+        Assert.True(true);
+    }
+    [Fact]
+    public void AuthUserDetailsAsync()
+    {
+        Assert.True(true);
+    }
+
     // [Fact]
     // public async Task MiddlewareTest_ReturnsNotFoundForRequest()
     // {
