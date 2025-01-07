@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using Authentifications.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-
 namespace Authentifications.Middlewares;
 public class AuthentificationBasicMiddleware : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -62,10 +61,6 @@ public class AuthentificationBasicMiddleware : AuthenticationHandler<Authenticat
 			var identity = new ClaimsIdentity(claims, Scheme.Name);
 			var principal = new ClaimsPrincipal(identity);
 			var ticket = new AuthenticationTicket(principal, Scheme.Name);
-			// ticket.Properties.StoreTokens(new[]
-			// {
-			// 	new AuthenticationToken { Name = "email", Value = email }
-			// });
 			return AuthenticateResult.Success(ticket);
 		}
 		catch (FormatException)

@@ -14,6 +14,7 @@ using Hangfire.Redis.StackExchange;
 using Hangfire.Dashboard.BasicAuthorization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
+using Authentifications.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -98,7 +99,7 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
 	+----------------------------------------------------------------------+
 */
-builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationMiddleware>();
+builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 
@@ -108,7 +109,7 @@ builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 	+----------------------------------------------------+
 */
 
-builder.Services.AddScoped<JwtBearerAuthenticationMiddleware>();
+builder.Services.AddScoped<JwtBearerAuthenticationService>();
 builder.Services.AddTransient<AuthentificationBasicMiddleware>();
 
 

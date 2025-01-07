@@ -6,22 +6,23 @@ using Authentifications.Models;
 using Authentifications.Middlewares;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
+using Authentifications.Services;
 namespace Authentifications.RedisContext;
 public class RedisCacheTokenService : IRedisCacheTokenService
 {
 	private readonly IDistributedCache _cache;
 	private readonly ILogger<RedisCacheService> logger;
 	private readonly IConfiguration configuration;
-	private readonly JwtBearerAuthenticationMiddleware JwtBearerAuthenticationMiddleware;
+	private readonly JwtBearerAuthenticationService  jwtBearer;
 	private readonly string cacheKey = string.Empty;
 	private readonly string email = string.Empty;
 	private readonly string password = string.Empty;
-	public RedisCacheTokenService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, JwtBearerAuthenticationMiddleware JwtBearerAuthenticationMiddleware)
+	public RedisCacheTokenService(IConfiguration configuration, IDistributedCache cache, ILogger<RedisCacheService> logger, JwtBearerAuthenticationService jwtBearer)
 	{
 		_cache = cache;
 		this.configuration = configuration;
 		this.logger = logger;
-		this.JwtBearerAuthenticationMiddleware = JwtBearerAuthenticationMiddleware;
+		this.jwtBearer = jwtBearer;
 		cacheKey = GenerateRedisKeyForTokenSession(email, password);
 	}
 	public bool IsTokenExpired(string token) //hangfire on check si le token est expiré dans redis

@@ -38,7 +38,7 @@ COPY TasksApi.pfx /etc/ssl/certs/TasksApi.pfx
 
 # Configuration des variables d'environnement
 ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/etc/ssl/certs/TasksApi.pfx
-# Check plustaard
+# Check plustard
 ENV ASPNETCORE_ENVIRONMENT=Development 
 ENV ASPNETCORE_URLS=https://+:8081
 

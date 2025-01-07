@@ -2,14 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Authentifications.Middlewares;
 using Authentifications.Interfaces;
 using Microsoft.AspNetCore.Authentication;
+using Authentifications.Services;
 namespace Authentifications.Controllers;
 [Route("v1/")]
 public class AccessTokenController : ControllerBase
 {
-	private readonly JwtBearerAuthenticationMiddleware jwtToken;
+	private readonly JwtBearerAuthenticationService jwtToken;
 	private readonly IRedisCacheService redisCache;
-	private readonly ILogger<JwtBearerAuthenticationMiddleware> log;
-	public AccessTokenController(ILogger<JwtBearerAuthenticationMiddleware> log, IRedisCacheService redisCache, JwtBearerAuthenticationMiddleware jwtToken)
+	private readonly ILogger<JwtBearerAuthenticationService> log;
+	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, IRedisCacheService redisCache, JwtBearerAuthenticationService jwtToken)
 	{
 		this.jwtToken = jwtToken;
 		this.log = log;
@@ -21,9 +22,6 @@ public class AccessTokenController : ControllerBase
 		// var scheme = await HttpContext.AuthenticateAsync("Basic");
 		// var options = new RemoteAuthenticationOptions();
 		var ticket = new AuthenticationTicket(User, "Basic");
-		//TicketReceivedContext ticketReceivedContext = new(HttpContext, new AuthenticationScheme("Basic", "Basic", typeof(AuthentificationBasicMiddleware)), options, ticket);
-		
-
 		var email = ticket.Properties.Items["email"] = HttpContext.Items["email"] as string;
 		var password = ticket.Properties.Items["password"] = HttpContext.Items["password"] as string;
 		if (!User.Identity!.IsAuthenticated)
