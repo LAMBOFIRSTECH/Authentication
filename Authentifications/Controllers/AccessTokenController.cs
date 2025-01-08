@@ -38,7 +38,6 @@ public class AccessTokenController : ControllerBase
 		{
 			return BadRequest("Password is missing.");
 		}
-		redisTokenCache.StoreTokenSessionInRedis(user.Email!, result.Token!, user.Pass);
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 
