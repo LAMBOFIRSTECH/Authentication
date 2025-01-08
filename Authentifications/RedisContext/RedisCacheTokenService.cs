@@ -2,8 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Authentifications.Interfaces;
-using Authentifications.Models;
-using Authentifications.Middlewares;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
 using Authentifications.Services;
