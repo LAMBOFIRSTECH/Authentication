@@ -8,19 +8,17 @@ namespace Authentifications.Controllers;
 public class AccessTokenController : ControllerBase
 {
 	private readonly JwtBearerAuthenticationService jwtToken;
-	private readonly IRedisCacheService redisCache;
+	private readonly IRedisCacheTokenService redisTokenCache;
 	private readonly ILogger<JwtBearerAuthenticationService> log;
-	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, IRedisCacheService redisCache, JwtBearerAuthenticationService jwtToken)
+	public AccessTokenController(ILogger<JwtBearerAuthenticationService> log, IRedisCacheTokenService redisTokenCache, JwtBearerAuthenticationService jwtToken)
 	{
 		this.jwtToken = jwtToken;
 		this.log = log;
-		this.redisCache = redisCache;
+		this.redisTokenCache = redisTokenCache;
 	}
 	[HttpPost("login")]
 	public async Task<ActionResult> Authentificate()
 	{
-		// var scheme = await HttpContext.AuthenticateAsync("Basic");
-		// var options = new RemoteAuthenticationOptions();
 		var ticket = new AuthenticationTicket(User, "Basic");
 		var email = ticket.Properties.Items["email"] = HttpContext.Items["email"] as string;
 		var password = ticket.Properties.Items["password"] = HttpContext.Items["password"] as string;
@@ -36,6 +34,11 @@ public class AccessTokenController : ControllerBase
 		{
 			return Unauthorized(new { result.Message });
 		}
+		if (user.Pass == null)
+		{
+			return BadRequest("Password is missing.");
+		}
+		redisTokenCache.StoreTokenSessionInRedis(user.Email!, result.Token!, user.Pass);
 		return CreatedAtAction(nameof(Authentificate), new { result.Token });
 	}
 

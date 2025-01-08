@@ -93,7 +93,6 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 
 //builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-
 /*
 	+----------------------------------------------------------------------+
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
