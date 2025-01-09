@@ -98,7 +98,7 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
 	+----------------------------------------------------------------------+
 */
-builder.Services.AddScoped<IJwtToken, JwtBearerAuthenticationService>();
+builder.Services.AddScoped<IJwtAccessAndRefreshTokenService, JwtAccessAndRefreshTokenService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 
@@ -108,7 +108,7 @@ builder.Services.AddScoped<IRedisCacheTokenService, RedisCacheTokenService>();
 	+----------------------------------------------------+
 */
 
-builder.Services.AddScoped<JwtBearerAuthenticationService>();
+builder.Services.AddScoped<JwtAccessAndRefreshTokenService>();
 builder.Services.AddTransient<AuthentificationBasicMiddleware>();
 
 
@@ -198,7 +198,7 @@ builder.Services.AddHangfireServer(options =>
 var app = builder.Build();
 // Ajouter le tableau de bord et le serveur Hangfire
 var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
-app.UseHangfireDashboard("/lambo-authentication-manage/hangfire", new DashboardOptions()
+app.UseHangfireDashboard("/lambo-authentication-manager/hangfire", new DashboardOptions()
 {
     DashboardTitle = "Hangfire Dashboard",
     Authorization = new[]

@@ -56,7 +56,7 @@ public class AuthentificationBasicMiddleware : AuthenticationHandler<Authenticat
 				Context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 				return AuthenticateResult.NoResult();
 			}
-			var claims = new List<Claim> { new Claim(ClaimTypes.Email, email) };
+			var claims = new List<Claim> { new(ClaimTypes.Email, email) };
 
 			var identity = new ClaimsIdentity(claims, Scheme.Name);
 			var principal = new ClaimsPrincipal(identity);
