@@ -11,32 +11,53 @@ using VaultSharp.V1.AuthMethods.Token;
 namespace Authentifications.Services;
 public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 {
-	private RsaSecurityKey rsaSecurityKey;
 	private readonly IConfiguration configuration;
-	private readonly ILogger<RsaSecurityKey> log;
+	private readonly ILogger<IConfiguration> log;
 	private readonly IRedisCacheService redisCache;
 	private readonly IRedisCacheTokenService redisTokenCache;
-	public JwtAccessAndRefreshTokenService(IConfiguration configuration, ILogger<RsaSecurityKey> log, IRedisCacheService redisCache, IRedisCacheTokenService redisTokenCache)
+	private RsaSecurityKey rsaSecurityKey;
+	private readonly string refreshToken;
+
+	public JwtAccessAndRefreshTokenService(IConfiguration configuration, ILogger<IConfiguration> log, IRedisCacheService redisCache, IRedisCacheTokenService redisTokenCache)
 	{
 		this.configuration = configuration;
 		this.log = log;
 		this.redisCache = redisCache;
 		this.redisTokenCache = redisTokenCache;
 		rsaSecurityKey = GetOrCreateSigningKey();
+		refreshToken = GenerateRefreshToken();
+
 	}
-	public async Task<TokenResult> GetToken(UtilisateurDto utilisateurDto)
+	public string GenerateRefreshToken()
 	{
-		//var tokenResult = new TokenResult();
-		// var value = await redisTokenCache.RetrieveTokenBasingOnRedisUserSessionAsync(utilisateurDto);
-		// if (!string.IsNullOrWhiteSpace(value))
-		// {
-		// 	tokenResult.Response = true; tokenResult.Token = value; tokenResult.RefreshToken = null;
-		// 	return tokenResult;
-		// }
+		var randomNumber = new byte[128];
+		using var rng = RandomNumberGenerator.Create();
+		rng.GetBytes(randomNumber);
+		return Convert.ToBase64String(randomNumber);
+	}
+
+	public async Task<TokenResult> NewAccessTokenUsingRefreshTokenAsync(string refresh, string email, string password)
+	{
+		// Récupérez le refresh token depuis Redis
+		var refreshTokenFromRedis = await redisTokenCache.RetrieveTokenBasingOnRedisUserSessionAsync(email, password);
+
+		if (string.IsNullOrEmpty(refreshTokenFromRedis))
+			throw new Exception("Empty refresh token.++++++++++++++++++++++++++++++++++");
+
+		if (!refreshTokenFromRedis.Equals(refresh))
+			throw new Exception("Not the same refresh token");
+		var utilisateurDto = await AuthUserDetailsAsync((true, email, password));
+		GetToken(utilisateurDto);
+		return GetToken(utilisateurDto);;
+
+	}
+	public TokenResult GetToken(UtilisateurDto utilisateurDto)
+	{
 		log.LogInformation("Création du token de session pour l'utilisateur : {utilisateur.Email}", utilisateurDto.Email);
 		var result = GenerateJwtTokenAndStatefulRefreshToken(utilisateurDto);
 		result.Response = true;
-		await Task.Delay(500);
+		if (string.IsNullOrWhiteSpace(result.RefreshToken))
+			throw new Exception("Le couple token et refreshToken est vide.");
 		redisTokenCache.StoreRefreshTokenSessionInRedis(utilisateurDto.Email!, result.RefreshToken!, utilisateurDto.Pass!);
 		return result;
 	}
@@ -87,7 +108,6 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 		{
 			{ "authenticationPublicKey", publicKeyPem }
 		}).Wait();
-
 			log.LogInformation("Successfull storage public key Vault !");
 		}
 		catch (Exception ex) when (ex.InnerException is SocketException socket)
@@ -110,7 +130,7 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
 			),
-			Expires = DateTime.UtcNow.AddMinutes(5),
+			Expires = DateTime.UtcNow.AddSeconds(20),
 			SigningCredentials = new SigningCredentials(GetOrCreateSigningKey(), SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
 			Audience = null,
@@ -121,25 +141,12 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 		};
 		var tokenCreation = tokenHandler.CreateToken(tokenDescriptor);
 		var token = tokenHandler.WriteToken(tokenCreation);
-
-		var refreshTokenDescriptor = new SecurityTokenDescriptor
-		{
-			Subject = new ClaimsIdentity(new[]
-			{
-				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-			}),
-			Expires = DateTime.UtcNow.AddHours(1), // Refresh token valide 7 jours normalement ou plus
-			SigningCredentials = new SigningCredentials(GetOrCreateSigningKey(), SecurityAlgorithms.RsaSha512),
-			Issuer = configuration.GetSection("JwtSettings")["Issuer"]
-		};
-
-		var refreshToken = tokenHandler.WriteToken(tokenHandler.CreateToken(refreshTokenDescriptor));
+		// Revocation d'un token dans quelle mesure
 		TokenResult result = new()
 		{
 			Token = token,
 			RefreshToken = refreshToken
 		};
-
 		return result;
 	}
 	public async Task<UtilisateurDto> AuthUserDetailsAsync((bool IsValid, string email, string password) tupleParameter)
@@ -148,17 +155,5 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 		var Parameter = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(tupleParameter.IsValid, tupleParameter.email!, tupleParameter.password!);
 		log.LogInformation("Authentication successful {Parameter.Item1}", Parameter.Item1);
 		return Parameter.Item2;
-	}
-	public async Task<bool> CheckExistedJwtRefreshToken(string refreshToken,string email,string password)
-	{
-		//var tokenResult = new TokenResult();
-		// var value = await redisTokenCache.RetrieveTokenBasingOnRedisUserSessionAsync(utilisateurDto);
-		// if (!string.IsNullOrWhiteSpace(value))
-		// {
-		// 	tokenResult.Response = true; tokenResult.Token = value; tokenResult.RefreshToken = null;
-		// 	return tokenResult;
-		// }
-		await Task.Delay(50);
-		return false;
 	}
 }

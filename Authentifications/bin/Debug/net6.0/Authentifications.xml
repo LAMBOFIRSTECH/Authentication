@@ -9,9 +9,9 @@
             Authentifie un utilisateur et retourne les tokens (access et refresh).
             </summary>
         </member>
-        <member name="M:Authentifications.Controllers.TokenController.RegenerateTokenUsingRefreshToken(System.String)">
+        <member name="M:Authentifications.Controllers.TokenController.RegenerateAccessTokenUsingRefreshToken(System.String)">
              <summary>
-             Rafraîchit les tokens en utilisant un refresh token valide.
+             Rafraîchit le token en utilisant un refresh token valide.
             <param name="refreshToken"></param>
              </summary>
         </member>

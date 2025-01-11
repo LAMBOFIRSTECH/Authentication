@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Authentifications.Services;
 
+
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -32,11 +33,11 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
-    opt.SwaggerDoc("1", new OpenApiInfo
+    opt.SwaggerDoc("v1.0", new OpenApiInfo
     {
         Title = "Authentification service | Api",
         Description = "An ASP.NET Core Web API for managing Users authentification",
-        Version = "1",
+        Version = "v1.0",
         Contact = new OpenApiContact
         {
             Name = "Artur Lambo",
@@ -114,8 +115,8 @@ builder.Services.AddTransient<AuthentificationBasicMiddleware>();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddLogging();
-builder.Services.AddAuthorization();
 
+builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication")
     .AddScheme<AuthenticationSchemeOptions, AuthentificationBasicMiddleware>("BasicAuthentication", options => { });
 var Config = builder.Configuration.GetSection("Redis");
@@ -200,7 +201,7 @@ var app = builder.Build();
 var HangFireConfig = builder.Configuration.GetSection("HangfireCredentials");
 app.UseHangfireDashboard("/lambo-authentication-manager/hangfire", new DashboardOptions()
 {
-    DashboardTitle = "Hangfire Dashboard",
+    DashboardTitle = "Hangfire Dashboard for Lamboft Inc ",
     Authorization = new[]
     {
         new BasicAuthAuthorizationFilter(
@@ -238,14 +239,14 @@ app.Lifetime.ApplicationStarted.Register(() =>
 */
 
 app.UseMiddleware<ContextPathMiddleware>("/lambo-authentication-manager");
-app.UseMiddleware<ValidationHandlingMiddleware>();
+//app.UseMiddleware<ValidationHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(con =>
      {
-         con.SwaggerEndpoint("/lambo-authentication-manager/swagger/1/swagger.json", "Gestion des authentification");
+         con.SwaggerEndpoint("/lambo-authentication-manager/swagger/1/swagger.yaml", "Gestion des authentification");
 
          con.RoutePrefix = string.Empty;
 
@@ -254,17 +255,27 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseRouting();  // Route d'abord
+// Appliquer l'authentification basique pour les autres routes
+app.UseAuthentication();  // Authentification basique ici pour les autres routes
+app.UseAuthorization();  // Autorisation après authentification
+
+// Ajouter MapWhen pour exclure l'authentification basique pour la route refreshToken
+app.MapWhen(context => context.Request.Path.StartsWithSegments("/lambo-authentication-manager/api/auth/refreshToken"), appBuilder =>
+{
+    // Ne pas utiliser l'authentification basique ici, juste l'autorisation
+    appBuilder.UseAuthorization();
+});
+
+
 app.UseEndpoints(endpoints =>
- {
-     endpoints.MapControllers();
-     endpoints.MapHealthChecks("/health");
-     endpoints.MapGet("/version", async context =>
-        {
-            await context.Response.WriteAsync("Version de l'API : 1");
-        });
- });
+{
+    endpoints.MapControllers();
+    endpoints.MapHealthChecks("/health");
+    endpoints.MapGet("/version", async context =>
+    {
+        await context.Response.WriteAsync("Version de l'API : v1.0");
+    });
+});
 
 app.Run();

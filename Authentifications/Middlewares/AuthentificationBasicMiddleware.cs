@@ -43,6 +43,10 @@ public class AuthentificationBasicMiddleware : AuthenticationHandler<Authenticat
 
 			var email = credentials[0];
 			var password = credentials[1];
+			if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+			{
+				throw new Exception("No credentials provided.");
+			}
 			Context.Items["password"] = password;
 			Context.Items["email"] = email;
 			string regexMatch = "(?<alpha>\\w+)@(?<mailing>[aA-zZ]+)\\.(?<domaine>[aA-zZ]+$)";
