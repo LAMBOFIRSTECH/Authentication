@@ -9,81 +9,74 @@ using Microsoft.Extensions.Options;
 namespace Authentifications.Middlewares;
 public class AuthentificationBasicMiddleware : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+    private readonly ILogger<AuthentificationBasicMiddleware> log;
+    private readonly IRedisCacheService redisCache;
+    public AuthentificationBasicMiddleware(IRedisCacheService redisCache, IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, ILogger<AuthentificationBasicMiddleware> log)
+    : base(options, logger, encoder, clock)
+    {
+        this.log = log;
+        this.redisCache = redisCache;
+    }
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
 
-	private readonly ILogger<AuthentificationBasicMiddleware> log;
-	private readonly IRedisCacheService redisCache;
-	public AuthentificationBasicMiddleware(
-	IRedisCacheService redisCache,
-	IOptionsMonitor<AuthenticationSchemeOptions> options,
-	ILoggerFactory logger,
-	UrlEncoder encoder,
-	ISystemClock clock, ILogger<AuthentificationBasicMiddleware> log)
+        if (!Request.Headers.ContainsKey("Authorization"))
+            return AuthenticateResult.Fail("Authorization header missing");
+        try
+        {
+            var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
+            if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
+                return AuthenticateResult.Fail("Invalid Authorization header format");
 
-	: base(options, logger, encoder, clock)
-	{
-		this.log = log;
-		this.redisCache = redisCache;
-	}
-	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
-	{
-		log.LogInformation("En-têtes de la requête : {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
+            var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
+            var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
+            if (credentials.Length != 2)
+                return AuthenticateResult.Fail("Invalid Authorization header format");
 
-		if (!Request.Headers.ContainsKey("Authorization"))
-			return AuthenticateResult.Fail("Authorization header missing");
-		try
-		{
-			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
-			if (string.IsNullOrEmpty(authHeader.Parameter) || !authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
-				return AuthenticateResult.Fail("Invalid Authorization header format");
+            var email = credentials[0];
+            var password = credentials[1];
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                throw new Exception("No credentials provided.");
+            }
+            Context.Items["password"] = password;
+            Context.Items["email"] = email;
+            string regexMatch = "(?<alpha>\\w+)@(?<mailing>[aA-zZ]+)\\.(?<domaine>[aA-zZ]+$)";
+            Match check = Regex.Match(email, regexMatch);
+            if (!check.Success)
+                return AuthenticateResult.Fail($"The following email address is invalid => {email}");
 
-			var credentialBytes = Convert.FromBase64String(authHeader.Parameter!);
-			var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
-			if (credentials.Length != 2)
-				return AuthenticateResult.Fail("Invalid Authorization header format");
+            if (!await ValidateCredentials(email, password))
+            {
+                log.LogWarning("Invalid credentials");
+                Context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return AuthenticateResult.NoResult();
+            }
+            var claims = new List<Claim> { new(ClaimTypes.Email, email) };
 
-			var email = credentials[0];
-			var password = credentials[1];
-			if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-			{
-				throw new Exception("No credentials provided.");
-			}
-			Context.Items["password"] = password;
-			Context.Items["email"] = email;
-			string regexMatch = "(?<alpha>\\w+)@(?<mailing>[aA-zZ]+)\\.(?<domaine>[aA-zZ]+$)";
-			Match check = Regex.Match(email, regexMatch);
-			if (!check.Success)
-				return AuthenticateResult.Fail($"The following email address is invalid => {email}");
-
-			if (!await ValidateCredentials(email, password))
-			{
-				log.LogWarning("Invalid credentials");
-				Context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-				return AuthenticateResult.NoResult();
-			}
-			var claims = new List<Claim> { new(ClaimTypes.Email, email) };
-
-			var identity = new ClaimsIdentity(claims, Scheme.Name);
-			var principal = new ClaimsPrincipal(identity);
-			var ticket = new AuthenticationTicket(principal, Scheme.Name);
-			return AuthenticateResult.Success(ticket);
-		}
-		catch (FormatException)
-		{
-			return AuthenticateResult.Fail("Invalid Authorization header encoding");
-		}
-		catch (Exception ex)
-		{
-			return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
-		}
-	}
-	private async Task<bool> ValidateCredentials(string email, string password)
-	{
-		var tupleResult = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(true, email, password);
-		if (tupleResult.Item1 is false)
-		{
-			log.LogError("Authentication failed, email adress or password is incorrect");
-			return false;
-		}
-		return true;
-	}
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            return AuthenticateResult.Success(ticket);
+        }
+        catch (FormatException)
+        {
+            return AuthenticateResult.Fail("Invalid Authorization header encoding");
+        }
+        catch (Exception ex)
+        {
+            return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
+        }
+    }
+    protected async Task<bool> ValidateCredentials(string email, string password)
+    {
+        var tupleResult = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(true, email, password);
+        if (tupleResult.Item1 is false)
+        {
+            log.LogError("Authentication failed, email adress or password is incorrect");
+            return false;
+        }
+        return true;
+    }
 }

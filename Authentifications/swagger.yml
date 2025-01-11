@@ -7,7 +7,7 @@ info:
     email: lamboartur94@gmail.com
   version: v1.0
 paths:
-  /api/auth/login:
+  /auth/login:
     post:
       tags:
         - Token
@@ -15,7 +15,7 @@ paths:
       responses:
         '200':
           description: Success
-  /api/auth/refreshToken:
+  /auth/refresh-token:
     put:
       tags:
         - Token

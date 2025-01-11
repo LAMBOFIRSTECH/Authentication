@@ -3,9 +3,8 @@ using Authentifications.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Authentifications.Models;
-using System.Diagnostics.CodeAnalysis;
 namespace Authentifications.Controllers;
-[Route("api/auth")]
+[Route("auth")]
 public class TokenController : ControllerBase
 {
     private readonly IJwtAccessAndRefreshTokenService jwtToken;
@@ -26,7 +25,6 @@ public class TokenController : ControllerBase
     /// <summary>
     /// Authentifie un utilisateur et retourne les tokens (access et refresh).
     /// </summary>
-    //[Authorize(Policy = "UserPolicy")]
     [HttpPost("login")]
     public async Task<ActionResult> Authentificate()
     {
@@ -46,7 +44,7 @@ public class TokenController : ControllerBase
         var tokenResult = new TokenResult()
         {
             Response = result.Response,
-            Message = "AccessToken and refreshToken have been successfull generated ",
+            Message = "AccessToken and refreshToken have been successfully generated ",
             Token = result.Token,
             RefreshToken = result.RefreshToken
         };
@@ -66,7 +64,7 @@ public class TokenController : ControllerBase
         password = HttpContext.Session.GetString("password");
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             return BadRequest("Email or password is missing. Could not refresh Token");
-        var result = await jwtToken.NewAccessTokenUsingRefreshTokenAsync(refreshToken, email, password);
+        var result = await jwtToken.NewAccessTokenUsingRefreshTokenInRedisAsync(refreshToken, email, password);
         if (!result.Response)
             return Unauthorized(new { result.Message });
         return CreatedAtAction(nameof(RegenerateAccessTokenUsingRefreshToken), new { result.Token, result.RefreshToken });

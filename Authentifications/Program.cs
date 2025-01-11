@@ -19,8 +19,6 @@ using Authentifications.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-// Conteneur d'enregistrement de dépendances -------------------------------- 
 builder.Services.AddDistributedMemoryCache();
 
 // Configuration de la session
@@ -102,8 +100,6 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 	});
 });
 
-//builder.Logging.SetMinimumLevel(LogLevel.Debug);
-
 /*
 	+----------------------------------------------------------------------+
 	|Enregistrement de services Injectées lorsqu'une interface est démandée|
@@ -129,13 +125,6 @@ builder.Services.AddLogging();
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication")
 	.AddScheme<AuthenticationSchemeOptions, AuthentificationBasicMiddleware>("BasicAuthentication", options => { });
-
-builder.Services.AddAuthorization(options =>
- {
-	 options.AddPolicy("UserPolicy", policy =>
-					   policy.RequireAuthenticatedUser()  // L'utilisateur doit être authentifié
-					   .AddAuthenticationSchemes("BasicAuthentication"));
- });
 
 var Config = builder.Configuration.GetSection("Redis");
 var clientCertificate = new X509Certificate2(
@@ -264,7 +253,7 @@ if (app.Environment.IsDevelopment())
 	app.UseSwagger();
 	app.UseSwaggerUI(con =>
 	 {
-		 con.SwaggerEndpoint("/lambo-authentication-manager/swagger/1/swagger.yml", "Gestion des authentification");
+		 con.SwaggerEndpoint("/lambo-authentication-manager/swagger/v1.0/swagger.yml", "Gestion des authentification"); // dépend de la version définie dans le swaggerDoc
 
 		 con.RoutePrefix = string.Empty;
 
@@ -273,19 +262,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
-app.UseRouting();  // Route d'abord
-// Appliquer l'authentification basique pour les autres routes
+app.UseRouting();  
 app.UseSession(); 
-app.UseAuthentication();  // Authentification basique ici pour les autres routes
-app.UseAuthorization();  // Autorisation après authentification
-
-// Ajouter MapWhen pour exclure l'authentification basique pour la route refreshToken
-app.MapWhen(context => context.Request.Path.StartsWithSegments("/lambo-authentication-manager/api/auth/refreshToken"), appBuilder =>
-{
-	// Ne pas utiliser l'authentification basique ici, juste l'autorisation
-	appBuilder.UseAuthorization();
-});
-
+app.UseAuthentication();  
+app.UseAuthorization();  
 
 app.UseEndpoints(endpoints =>
 {
