@@ -12,13 +12,13 @@ namespace Authentifications.Services;
 public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 {
 	private readonly IConfiguration configuration;
-	private readonly ILogger<IConfiguration> log;
+	private readonly ILogger<JwtAccessAndRefreshTokenService> log;
 	private readonly IRedisCacheService redisCache;
 	private readonly IRedisCacheTokenService redisTokenCache;
 	private RsaSecurityKey rsaSecurityKey;
 	private readonly string refreshToken;
 
-	public JwtAccessAndRefreshTokenService(IConfiguration configuration, ILogger<IConfiguration> log, IRedisCacheService redisCache, IRedisCacheTokenService redisTokenCache)
+	public JwtAccessAndRefreshTokenService(IConfiguration configuration, ILogger<JwtAccessAndRefreshTokenService> log, IRedisCacheService redisCache, IRedisCacheTokenService redisTokenCache)
 	{
 		this.configuration = configuration;
 		this.log = log;
@@ -38,15 +38,13 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 
 	public async Task<TokenResult> NewAccessTokenUsingRefreshTokenAsync(string refresh, string email, string password)
 	{
-		// Récupérez le refresh token depuis Redis
-		var refreshTokenFromRedis = await redisTokenCache.RetrieveTokenBasingOnRedisUserSessionAsync(email, password);
-
-		if (string.IsNullOrEmpty(refreshTokenFromRedis))
-			throw new Exception("Empty refresh token.++++++++++++++++++++++++++++++++++");
-
-		if (!refreshTokenFromRedis.Equals(refresh))
-			throw new Exception("Not the same refresh token");
 		var utilisateurDto = await AuthUserDetailsAsync((true, email, password));
+		var refreshTokenFromRedis = await redisTokenCache.RetrieveTokenBasingOnRedisUserSessionAsync(utilisateurDto.Email!, utilisateurDto.Pass!);
+		if (string.IsNullOrEmpty(refreshTokenFromRedis))
+			throw new Exception("Empty refresh token retrieve from redis");
+	
+		if (!refreshTokenFromRedis.Equals(refresh))
+			throw new Exception("Not the same refresh token"); 
 		GetToken(utilisateurDto);
 		return GetToken(utilisateurDto);;
 
@@ -130,7 +128,7 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
 					new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
 				}
 			),
-			Expires = DateTime.UtcNow.AddSeconds(20),
+			Expires = DateTime.UtcNow.AddMinutes(15),
 			SigningCredentials = new SigningCredentials(GetOrCreateSigningKey(), SecurityAlgorithms.RsaSha512),
 			Issuer = configuration.GetSection("JwtSettings")["Issuer"],
 			Audience = null,

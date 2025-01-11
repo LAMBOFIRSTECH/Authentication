@@ -23,6 +23,25 @@
           "TestAuthentications.dll": {}
         }
       },
+      "AutoRefreshTokenHttpMessageHandler/1.1.3": {
+        "dependencies": {
+          "Microsoft.Bcl.TimeProvider": "8.0.1",
+          "Microsoft.Extensions.Options": "9.0.0",
+          "System.Net.Http.Json": "8.0.1",
+          "System.Text.Json": "8.0.5"
+        },
+        "runtime": {
+          "lib/netstandard2.1/AutoRefreshTokenHttpMessageHandler.dll": {
+            "assemblyVersion": "1.1.3.0",
+            "fileVersion": "1.1.3.0"
+          }
+        },
+        "resources": {
+          "lib/netstandard2.1/nl/AutoRefreshTokenHttpMessageHandler.resources.dll": {
+            "locale": "nl"
+          }
+        }
+      },
       "BCrypt.Net-Next/4.0.3": {
         "runtime": {
           "lib/net6.0/BCrypt.Net-Next.dll": {
@@ -255,6 +274,17 @@
           "lib/netcoreapp2.1/Microsoft.Bcl.HashCode.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "4.700.20.56604"
+          }
+        }
+      },
+      "Microsoft.Bcl.TimeProvider/8.0.1": {
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "8.0.0"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.Bcl.TimeProvider.dll": {
+            "assemblyVersion": "8.0.0.1",
+            "fileVersion": "8.0.123.58001"
           }
         }
       },
@@ -1800,6 +1830,7 @@
       "xunit.runner.visualstudio/2.4.3": {},
       "Authentifications/1.0.0": {
         "dependencies": {
+          "AutoRefreshTokenHttpMessageHandler": "1.1.3",
           "BCrypt.Net-Next": "4.0.3",
           "Hangfire": "1.8.17",
           "Hangfire.AspNetCore": "1.8.17",
@@ -1827,6 +1858,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AutoRefreshTokenHttpMessageHandler/1.1.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-gLklRqxgt7D/gDXCQdfEbVjHgvOFpipVLbG/c7DKSvOADIIncNAwBaY2+KLzgqbFF+DhcFs1CRWjP8NF2MOGcQ==",
+      "path": "autorefreshtokenhttpmessagehandler/1.1.3",
+      "hashPath": "autorefreshtokenhttpmessagehandler.1.1.3.nupkg.sha512"
     },
     "BCrypt.Net-Next/4.0.3": {
       "type": "package",
@@ -1960,6 +1998,13 @@
       "sha512": "sha512-MalY0Y/uM/LjXtHfX/26l2VtN4LDNZ2OE3aumNOHDLsT4fNYy2hiHXI4CXCqKpNUNm7iJ2brrc4J89UdaL56FA==",
       "path": "microsoft.bcl.hashcode/1.1.1",
       "hashPath": "microsoft.bcl.hashcode.1.1.1.nupkg.sha512"
+    },
+    "Microsoft.Bcl.TimeProvider/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-C7kWHJnMRY7EvJev2S8+yJHZ1y7A4ZlLbA4NE+O23BDIAN5mHeqND1m+SKv1ChRS5YlCDW7yAMUe7lttRsJaAA==",
+      "path": "microsoft.bcl.timeprovider/8.0.1",
+      "hashPath": "microsoft.bcl.timeprovider.8.0.1.nupkg.sha512"
     },
     "Microsoft.CodeCoverage/17.1.0": {
       "type": "package",

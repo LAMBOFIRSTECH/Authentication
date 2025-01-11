@@ -18,7 +18,6 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		_cache = cache;
 		this.configuration = configuration;
 		this.logger = logger;
-		// this.jwtBearer = jwtBearer;
 	}
 	public bool IsTokenExpired(string token) //hangfire on check si le token a expiré dans redis
 	{
@@ -43,10 +42,8 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 	{
 		if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
 			return string.Empty;
-
-		var tampon = BitConverter.ToString(ComputeHashUsingByte(email, password)).Replace("-", "");
 		var name = Regex.Match(email, "^[^@]+");
-		var cacheKey = $"Token-{name}_{tampon}";
+		var cacheKey = $"Token-{name}_{BitConverter.ToString(ComputeHashUsingByte(email, password)).Replace("-", "")}";
 		var cachedData = await _cache.GetStringAsync(cacheKey);
 		if (cachedData is null)
 		{
@@ -65,6 +62,7 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		{
 			{ "RedisRefreshTokenId", Guid.NewGuid() },
 			{ "Email", email },
+			{ "Pass", password },
 			{ "refreshToken", refreshToken }
 		};
 		var tampon = Convert.ToHexString(ComputeHashUsingByte(email, password));
@@ -80,9 +78,5 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 			});
 			logger.LogInformation("Successfull storage refresh token connection for key: {CacheKey}", cacheKey);
 		}
-	}
-	public string RefreshToken(string token, string email)
-	{
-		throw new NotImplementedException();
 	}
 }

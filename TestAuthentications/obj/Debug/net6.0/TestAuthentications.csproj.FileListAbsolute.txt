@@ -166,3 +166,6 @@
 /home/lambo-ubuntu/Authentication/TestAuthentications/obj/Debug/net6.0/TestAuthentications.pdb
 /home/lambo-ubuntu/Authentication/TestAuthentications/obj/Debug/net6.0/TestAuthentications.genruntimeconfig.cache
 /home/lambo-ubuntu/Authentication/TestAuthentications/obj/Debug/net6.0/ref/TestAuthentications.dll
+/home/lambo-ubuntu/Authentication/TestAuthentications/bin/Debug/net6.0/AutoRefreshTokenHttpMessageHandler.dll
+/home/lambo-ubuntu/Authentication/TestAuthentications/bin/Debug/net6.0/Microsoft.Bcl.TimeProvider.dll
+/home/lambo-ubuntu/Authentication/TestAuthentications/bin/Debug/net6.0/nl/AutoRefreshTokenHttpMessageHandler.resources.dll
