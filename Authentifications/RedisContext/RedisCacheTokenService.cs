@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Authentifications.Interfaces;
@@ -17,17 +16,6 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		this.configuration = configuration;
 		this.logger = logger;
 	}
-	public bool IsTokenExpired(string token) //hangfire on check si le token a expiré dans redis
-	{
-		var tokenHandler = new JwtSecurityTokenHandler();
-		if (tokenHandler.ReadToken(token) is not JwtSecurityToken jwtToken)
-			return true;
-
-		var expirationDate = jwtToken.ValidTo;
-		return expirationDate < DateTime.UtcNow;
-	}
-	
-
 	public byte[] ComputeHashUsingByte(string email, string password)
 	{
 		string salt = "RandomUniqueSalt";
@@ -36,6 +24,7 @@ public class RedisCacheTokenService : IRedisCacheTokenService
 		byte[] bytes = Encoding.UTF8.GetBytes(combined);
 		return sha256.ComputeHash(bytes);
 	}
+	
 	public async Task<string> RetrieveTokenBasingOnRedisUserSessionAsync(string email,string password)
 	{
 		if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))

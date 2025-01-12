@@ -70,7 +70,7 @@ public class JwtAccessAndRefreshTokenService : IJwtAccessAndRefreshTokenService
         rsaSecurityKey = new RsaSecurityKey(rsa.ExportParameters(true));
         return rsaSecurityKey;
     }
-    private static string ConvertToPem(byte[] keyBytes, string keyType)
+    public static string ConvertToPem(byte[] keyBytes, string keyType)
     {
         var base64Key = Convert.ToBase64String(keyBytes);
         var sb = new StringBuilder();

@@ -69,7 +69,7 @@ public class AuthentificationBasicMiddleware : AuthenticationHandler<Authenticat
             return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
         }
     }
-    protected async Task<bool> ValidateCredentials(string email, string password)
+    public async Task<bool> ValidateCredentials(string email, string password)
     {
         var tupleResult = await redisCache.GetBooleanAndUserDataFromRedisUsingParamsAsync(true, email, password);
         if (tupleResult.Item1 is false)

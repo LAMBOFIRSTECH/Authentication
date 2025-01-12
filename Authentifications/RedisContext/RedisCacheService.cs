@@ -181,7 +181,7 @@ public class RedisCacheService : IRedisCacheService
             throw;
         }
     }
-    private async Task UpdateRedisCacheWithExternalApiData(ICollection<UtilisateurDto> externalApiData)
+    public async Task UpdateRedisCacheWithExternalApiData(ICollection<UtilisateurDto> externalApiData)
     {
         var serializedData = JsonConvert.SerializeObject(externalApiData);
         await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
